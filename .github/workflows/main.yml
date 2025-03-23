@@ -120,7 +120,7 @@ jobs:
       - name: Check dependencies with safety
         run: |
           source .venv/bin/activate
-          safety check
+          safety scan
 
   test:
     needs: [lint, security]

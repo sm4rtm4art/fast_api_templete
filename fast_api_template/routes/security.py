@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -11,7 +12,6 @@ from ..security import (
     authenticate_user,
     create_access_token,
     create_refresh_token,
-    get_user,
     validate_token,
 )
 
@@ -25,7 +25,7 @@ router = APIRouter()
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
-    user = authenticate_user(get_user, form_data.username, form_data.password)
+    user = authenticate_user(form_data.username, form_data.password)
     if not user or not isinstance(user, User):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -40,7 +40,10 @@ async def login_for_access_token(
     )
 
     refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
-    refresh_token = create_refresh_token(data={"sub": user.username}, expires_delta=refresh_token_expires)
+    refresh_token = create_refresh_token(
+        data={"sub": user.username},
+        expires_delta=refresh_token_expires,
+    )
 
     return {
         "access_token": access_token,
@@ -60,7 +63,10 @@ async def refresh_token(form_data: RefreshToken) -> Any:
     )
 
     refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
-    refresh_token = create_refresh_token(data={"sub": user.username}, expires_delta=refresh_token_expires)
+    refresh_token = create_refresh_token(
+        data={"sub": user.username},
+        expires_delta=refresh_token_expires,
+    )
 
     return {
         "access_token": access_token,

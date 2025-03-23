@@ -1,4 +1,6 @@
 # pragma: no cover
+from typing import Any
+
 from .cli import cli
 
 main = cli

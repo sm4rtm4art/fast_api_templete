@@ -26,8 +26,9 @@ Notes:
 import os
 import re
 import sys
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, List, Optional
+from typing import Any
 
 
 def add_types_to_file(file_path: str) -> None:
@@ -76,7 +77,7 @@ def infer_return_type(content: str, func_end: int, func_name: str, file_path: st
     func_lines = content[func_end:].split("\n")
 
     # Check for explicit return statements
-    return_lines: List[str] = []
+    return_lines: list[str] = []
     indentation = 0
     in_function = True
 
@@ -114,7 +115,7 @@ def infer_return_type(content: str, func_end: int, func_name: str, file_path: st
     return "Any"  # Default to Any for unknown return types
 
 
-def find_python_files(directory: str, exclude: Optional[List[str]] = None) -> Generator[str, None, None]:
+def find_python_files(directory: str, exclude: list[str] | None = None) -> Generator[str, None, None]:
     """Find all Python files in the given directory, excluding patterns."""
     exclude = exclude or []
     for root, _, files in os.walk(directory):

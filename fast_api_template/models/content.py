@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel, Extra
 from sqlmodel import Field, Relationship, SQLModel
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from fast_api_template.security import User
 
 
-class Content(SQLModel, table=True):
+class Content(SQLModel, table=True):  # type: ignore
     """This is an example model for your application.
 
     Replace with the *things* you do in your application.
@@ -26,6 +26,11 @@ class Content(SQLModel, table=True):
     # It populates a `.contents` attribute to the `User` model.
     user: Optional["User"] = Relationship(back_populates="contents")
 
+    @property
+    def tags_list(self) -> list[str]:
+        """Property to get the tags as a list."""
+        return self.tags.split(",") if self.tags else []
+
 
 class ContentResponse(BaseModel):
     """This the serializer exposed on the API"""
@@ -39,11 +44,10 @@ class ContentResponse(BaseModel):
     tags: list[str]
     user_id: int
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # tags to model representation
-        tags = kwargs.pop("tags", None)
-        if tags and isinstance(tags, str):
-            kwargs["tags"] = tags.split(",")
+        if kwargs.get("tags") and isinstance(kwargs["tags"], str):
+            kwargs["tags"] = kwargs["tags"].split(",") if kwargs["tags"] else []
         super().__init__(*args, **kwargs)
 
 
@@ -59,11 +63,10 @@ class ContentIncoming(BaseModel):
         extra = Extra.allow
         arbitrary_types_allowed = True
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # tags to database representation
-        tags = kwargs.pop("tags", None)
-        if tags and isinstance(tags, list):
-            kwargs["tags"] = ",".join(tags)
+        if kwargs.get("tags") and isinstance(kwargs["tags"], list):
+            kwargs["tags"] = ",".join(kwargs["tags"])
         super().__init__(*args, **kwargs)
         self.generate_slug()
 

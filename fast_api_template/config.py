@@ -19,6 +19,7 @@ settings = Dynaconf(
 
 ```
 from fast_api_template.config import settings
+from typing import Any
 ```
 
 ## Acessing variables

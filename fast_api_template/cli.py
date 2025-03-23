@@ -1,3 +1,5 @@
+from typing import Any
+
 import typer
 import uvicorn
 from sqlmodel import Session, select
@@ -31,7 +33,7 @@ def run(
 @cli.command()
 def create_user(username: str, password: str, superuser: bool = False) -> Any:
     """Create user"""
-    create_db_and_tables(engine)
+    create_db_and_tables()
     with Session(engine) as session:
         user = User(username=username, password=password, superuser=superuser)
         session.add(user)
