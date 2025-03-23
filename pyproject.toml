@@ -1,0 +1,119 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fast_api_template"
+dynamic = ["version"]
+description = "Modern FastAPI template with UV package manager"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+authors = [
+    { name = "sm4rtm4art", email = "martin@example.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.23.2",
+    "sqlmodel>=0.0.11",
+    "typer>=0.9.0",
+    "dynaconf>=3.2.3",
+    "jinja2>=3.1.2",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "psycopg2-binary>=2.9.9",
+    "httpx>=0.25.1",
+    "pydantic>=2.4.2",
+    "structlog>=23.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.1",
+    "pytest-mock>=3.12.0",
+    "coverage>=7.3.2",
+    "pre-commit>=3.5.0",
+]
+lint = [
+    "ruff>=0.1.3",
+    "black>=23.10.1",
+    "isort>=5.12.0",
+    "mypy>=1.6.1",
+]
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.4.8",
+    "gitchangelog>=3.0.4",
+]
+test = [
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.1",
+    "pytest-mock>=3.12.0",
+    "pytest-picked>=0.4.6",
+    "coverage>=7.3.2",
+]
+notebook = [
+    "jupyterlab>=4.0.7",
+    "pandas>=2.1.3",
+    "matplotlib>=3.8.2",
+    "seaborn>=0.13.0",
+    "ipywidgets>=8.1.1",
+]
+security = [
+    "bandit>=1.7.5",
+    "safety>=2.3.5",
+]
+
+[project.scripts]
+fast_api_template = "fast_api_template.__main__:main"
+
+[project.urls]
+"Homepage" = "https://github.com/sm4rtm4art/FAST_API_TEMPLATE"
+"Bug Tracker" = "https://github.com/sm4rtm4art/FAST_API_TEMPLATE/issues"
+
+[tool.hatch.version]
+path = "fast_api_template/VERSION"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fast_api_template"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+select = ["E", "F", "B", "I", "N", "UP", "SIM", "TCH"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.12"
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "--cov=fast_api_template --cov-report=term-missing --cov-report=xml --cov-report=html -v" 

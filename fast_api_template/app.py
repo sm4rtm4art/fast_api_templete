@@ -1,11 +1,14 @@
 import io
 import os
+import time
+from typing import Dict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from starlette.middleware.cors import CORSMiddleware
+from sqlmodel import Session, select
 
 from .config import settings
-from .db import create_db_and_tables, engine
+from .db import create_db_and_tables, engine, get_session
 from .routes import main_router
 
 
@@ -57,3 +60,24 @@ app.include_router(main_router)
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables(engine)
+
+
+@app.get("/health", tags=["Health"])
+async def health_check(session: Session = Depends(get_session)) -> Dict[str, str]:
+    """
+    Health check endpoint that also verifies database connectivity.
+    """
+    # Check database connection
+    try:
+        # Simple query to check DB connection
+        session.exec(select(1)).one()
+        db_status = "healthy"
+    except Exception:
+        db_status = "unhealthy"
+    
+    return {
+        "status": "healthy",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        "database": db_status,
+        "version": read("VERSION"),
+    }

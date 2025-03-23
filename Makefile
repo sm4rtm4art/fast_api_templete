@@ -1,6 +1,5 @@
 .ONESHELL:
-ENV_PREFIX=$(shell python -c "if __import__('pathlib').Path('.venv/bin/pip').exists(): print('.venv/bin/')")
-USING_POETRY=$(shell grep "tool.poetry" pyproject.toml && echo "yes")
+ENV_PREFIX=$(shell python -c "if __import__('pathlib').Path('.venv/bin/python').exists(): print('.venv/bin/')")
 
 .PHONY: help
 help:             ## Show the help.
@@ -13,28 +12,33 @@ help:             ## Show the help.
 .PHONY: show
 show:             ## Show the current environment.
 	@echo "Current environment:"
-	@if [ "$(USING_POETRY)" ]; then poetry env info && exit; fi
 	@echo "Running using $(ENV_PREFIX)"
 	@$(ENV_PREFIX)python -V
 	@$(ENV_PREFIX)python -m site
 
 .PHONY: install
 install:          ## Install the project in dev mode.
-	@if [ "$(USING_POETRY)" ]; then poetry install && exit; fi
-	@echo "Don't forget to run 'make virtualenv' if you got errors."
-	$(ENV_PREFIX)pip install -e .[test]
+	@echo "Installing project with UV..."
+	@if ! command -v uv >/dev/null 2>&1; then \
+		echo "UV not found. Installing UV..."; \
+		curl -sSf https://install.determinate.systems/uv | sh -s -- --yes; \
+	fi
+	@if [ ! -d ".venv" ]; then \
+		uv venv; \
+	fi
+	$(ENV_PREFIX)uv pip install -e .[dev,lint,test,docs]
 
 .PHONY: fmt
 fmt:              ## Format code using black & isort.
 	$(ENV_PREFIX)isort fast_api_template/
-	$(ENV_PREFIX)black -l 79 fast_api_template/
-	$(ENV_PREFIX)black -l 79 tests/
+	$(ENV_PREFIX)black fast_api_template/
+	$(ENV_PREFIX)black tests/
 
 .PHONY: lint
 lint:             ## Run pep8, black, mypy linters.
-	$(ENV_PREFIX)flake8 fast_api_template/
-	$(ENV_PREFIX)black -l 79 --check fast_api_template/
-	$(ENV_PREFIX)black -l 79 --check tests/
+	$(ENV_PREFIX)ruff check fast_api_template/
+	$(ENV_PREFIX)black --check fast_api_template/
+	$(ENV_PREFIX)black --check tests/
 	$(ENV_PREFIX)mypy --ignore-missing-imports fast_api_template/
 
 .PHONY: test
@@ -56,6 +60,7 @@ clean:            ## Clean unused files.
 	@rm -rf .cache
 	@rm -rf .pytest_cache
 	@rm -rf .mypy_cache
+	@rm -rf .ruff_cache
 	@rm -rf build
 	@rm -rf dist
 	@rm -rf *.egg-info
@@ -65,12 +70,14 @@ clean:            ## Clean unused files.
 
 .PHONY: virtualenv
 virtualenv:       ## Create a virtual environment.
-	@if [ "$(USING_POETRY)" ]; then poetry install && exit; fi
-	@echo "creating virtualenv ..."
+	@echo "Creating virtualenv with UV..."
+	@if ! command -v uv >/dev/null 2>&1; then \
+		echo "UV not found. Installing UV..."; \
+		curl -sSf https://install.determinate.systems/uv | sh -s -- --yes; \
+	fi
 	@rm -rf .venv
-	@python3 -m venv .venv
-	@./.venv/bin/pip install -U pip
-	@./.venv/bin/pip install -e .[test]
+	@uv venv
+	@./.venv/bin/uv pip install -e .[dev,lint,test,docs]
 	@echo
 	@echo "!!! Please run 'source .venv/bin/activate' to enable the environment !!!"
 
@@ -93,52 +100,45 @@ docs:             ## Build the documentation.
 	@$(ENV_PREFIX)mkdocs build
 	URL="site/index.html"; xdg-open $$URL || sensible-browser $$URL || x-www-browser $$URL || gnome-open $$URL  || open $$URL
 
-.PHONY: switch-to-poetry
-switch-to-poetry: ## Switch to poetry package manager.
-	@echo "Switching to poetry ..."
-	@if ! poetry --version > /dev/null; then echo 'poetry is required, install from https://python-poetry.org/'; exit 1; fi
-	@rm -rf .venv
-	@poetry init --no-interaction --name=a_flask_test --author=rochacbruno
-	@echo "" >> pyproject.toml
-	@echo "[tool.poetry.scripts]" >> pyproject.toml
-	@echo "fast_api_template = 'fast_api_template.__main__:main'" >> pyproject.toml
-	@cat requirements.txt | while read in; do poetry add --no-interaction "$${in}"; done
-	@cat requirements-test.txt | while read in; do poetry add --no-interaction "$${in}" --dev; done
-	@poetry install --no-interaction
-	@mkdir -p .github/backup
-	@mv requirements* .github/backup
-	@mv setup.py .github/backup
-	@echo "You have switched to https://python-poetry.org/ package manager."
-	@echo "Please run 'poetry shell' or 'poetry run fast_api_template'"
-
 .PHONY: init
 init:             ## Initialize the project based on an application template.
 	@./.github/init.sh
 
 .PHONY: shell
 shell:            ## Open a shell in the project.
-	@if [ "$(USING_POETRY)" ]; then poetry shell; exit; fi
 	@./.venv/bin/ipython -c "from fast_api_template import *"
 
 .PHONY: docker-build
-docker-build:	  ## Builder docker images
-	@docker-compose -f docker-compose-dev.yaml -p fast_api_template build
+docker-build:	  ## Build docker images
+	@docker compose -f docker-compose-dev.yaml -p fast_api_template build
 
 .PHONY: docker-run
 docker-run:  	  ## Run docker development images
-	@docker-compose -f docker-compose-dev.yaml -p fast_api_template up -d
+	@docker compose -f docker-compose-dev.yaml -p fast_api_template up -d
 
 .PHONY: docker-stop
 docker-stop: 	  ## Bring down docker dev environment
-	@docker-compose -f docker-compose-dev.yaml -p fast_api_template down
+	@docker compose -f docker-compose-dev.yaml -p fast_api_template down
 
 .PHONY: docker-ps
-docker-ps: 	  ## Bring down docker dev environment
-	@docker-compose -f docker-compose-dev.yaml -p fast_api_template ps
+docker-ps: 	  ## List docker containers
+	@docker compose -f docker-compose-dev.yaml -p fast_api_template ps
 
-.PHONY: docker-log
-docker-logs: 	  ## Bring down docker dev environment
-	@docker-compose -f docker-compose-dev.yaml -p fast_api_template logs -f app
+.PHONY: docker-logs
+docker-logs: 	  ## Show docker logs
+	@docker compose -f docker-compose-dev.yaml -p fast_api_template logs -f app
+
+.PHONY: docker-prod-build
+docker-prod-build:	## Build production docker images
+	@docker compose -f docker-compose.yaml -p fast_api_template_prod build
+
+.PHONY: docker-prod-run
+docker-prod-run:  	## Run production docker images
+	@docker compose -f docker-compose.yaml -p fast_api_template_prod up -d
+
+.PHONY: docker-prod-stop
+docker-prod-stop: 	## Bring down production docker environment
+	@docker compose -f docker-compose.yaml -p fast_api_template_prod down
 
 # This project has been generated from rochacbruno/fastapi-project-template
 # __author__ = 'rochacbruno'
