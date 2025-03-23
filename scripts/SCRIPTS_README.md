@@ -8,6 +8,7 @@ This directory contains utility scripts for development, testing, and CI/CD proc
 - `fix_linting.sh`: Automatically fixes common linting issues across the codebase.
 - `fix_version.sh`: Manages and updates version strings consistently across the project.
 - `type_annotations.py`: Adds missing type annotations to functions in the codebase to fix common mypy errors.
+- `check_dependencies.py`: Scans project dependencies in pyproject.toml for security vulnerabilities.
 
 ## Usage
 
@@ -42,6 +43,14 @@ python scripts/type_annotations.py [file_paths...]
 ```
 
 Adds type annotations to functions in the specified files. If no files are provided, it scans the entire project.
+
+### `check_dependencies.py`
+
+```bash
+python scripts/check_dependencies.py
+```
+
+Scans project dependencies in pyproject.toml for security vulnerabilities using the safety library. Works with modern Python packaging instead of requirements.txt.
 
 ## Development
 

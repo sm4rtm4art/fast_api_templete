@@ -15,48 +15,40 @@ repos:
     rev: v0.1.8
     hooks:
       - id: ruff
-        args: [--fix]
+        args: [--fix, --select=I] # Include isort functionality
       - id: ruff-format
-
-  # Temporarily disabled to allow commits to proceed
-  # - repo: https://github.com/astral-sh/ruff-pre-commit
-  #   rev: v0.1.8
-  #   hooks:
-  #     - id: ruff
-  #       args: [--fix, --line-length=120]
-  #     - id: ruff-format
-  #       args: [--line-length=120]
 
   # Add proper type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.6.1
     hooks:
       - id: mypy
-        additional_dependencies: [types-requests, pydantic]
+        additional_dependencies:
+          [types-requests, pydantic, types-python-jose, types-passlib]
         exclude: ^tests/
 
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.10
     hooks:
       - id: vulture
-        args: [fast_api_template, tests, --min-confidence=80, --exclude=__init__.py]
+        args:
+          [fast_api_template, tests, --min-confidence=80, --exclude=__init__.py]
 
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        args: ["--profile", "black"]
-        
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
         types_or: [javascript, jsx, ts, tsx, json, yaml, css, scss, html]
-        
-  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.2
+
+  # Custom hook for dependency security checking that works with pyproject.toml
+  - repo: local
     hooks:
-      - id: python-safety-dependencies-check
+      - id: security-check
+        name: Dependency Security Check
+        entry: python scripts/check_dependencies.py
+        language: system
+        pass_filenames: false
+        files: pyproject.toml
 
   - repo: https://github.com/econchick/interrogate
     rev: 1.5.0
