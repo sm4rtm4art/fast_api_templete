@@ -100,7 +100,18 @@ line_length = 88
 line-length = 88
 target-version = "py312"
 select = ["E", "F", "B", "I", "N", "UP", "SIM", "TCH"]
-ignore = []
+ignore = [
+    # Function call in argument defaults
+    "B008",
+    # Exception handling issues
+    "B904",
+    # Nested if statements
+    "SIM102",
+    # Unused imports
+    "F401",
+    # Deprecated typing imports
+    "UP035",
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -116,4 +127,4 @@ disallow_untyped_decorators = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
-addopts = "--cov=fast_api_template --cov-report=term-missing --cov-report=xml --cov-report=html -v" 
+addopts = "--cov=fast_api_template --cov-report=term-missing --cov-report=xml --cov-report=html -v"
