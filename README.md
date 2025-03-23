@@ -224,6 +224,40 @@ This project uses [Dynaconf](https://dynaconf.com) to manage configuration.
 from fast_api_template.config import settings
 ```
 
+## Project Structure
+
+This project follows modern Python best practices with a clean and maintainable structure:
+
+```
+/
+├── .ci/                      # CI/CD configuration files
+│   ├── gitlab-ci.yml         # GitLab CI/CD configuration
+│   └── CI_CONFIG_README.md   # Documentation for CI/CD setup
+├── scripts/                  # Utility scripts for development and CI
+│   ├── detect_ci.sh          # CI environment detection
+│   ├── fix_linting.sh        # Automated linting fixes
+│   ├── fix_version.sh        # Version management
+│   ├── type_annotations.py   # Adding type annotations
+│   └── SCRIPTS_README.md     # Documentation for scripts
+├── fast_api_template/        # Main package source code
+│   ├── models/               # Data models (SQLModel)
+│   ├── routes/               # API routes and endpoints
+│   ├── app.py                # FastAPI application instance
+│   ├── cli.py                # Command line interface
+│   ├── config.py             # Configuration management
+│   └── security.py           # Authentication and permissions
+├── tests/                    # Test suite
+├── pyproject.toml            # Project dependencies and configuration
+└── .pre-commit-config.yaml   # Pre-commit hooks configuration
+```
+
+### Key Directories
+
+- **fast_api_template/**: Core application code
+- **.ci/**: CI/CD configuration files (see `.ci/CI_CONFIG_README.md`)
+- **scripts/**: Utility scripts for development and CI (see `scripts/SCRIPTS_README.md`)
+- **tests/**: Test suite for the application
+
 ## Acessing variables
 
 ```py

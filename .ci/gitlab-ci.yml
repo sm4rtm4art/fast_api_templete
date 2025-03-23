@@ -1,0 +1,35 @@
+stages:
+  - prepare
+  - lint
+  - security
+  - test
+  - build
+  - deploy
+
+variables:
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PYTHON_VERSION: "3.12"
+
+# Define a reusable template for UV setup
+.uv-template: &uv-template
+  before_script:
+    - source scripts/detect_ci.sh
+    - python -m pip install --upgrade pip
+    - pip install "uv>=0.1.30"
+    - uv --version
+
+# Prepare environment and free disk space
+prepare:
+  stage: prepare
+  image: python:${PYTHON_VERSION}-slim
+  script:
+    - apt-get update
+    - apt-get install -y curl
+    - df -h
+    - apt-get clean
+    - df -h
+  artifacts:
+    paths:
+      - scripts/detect_ci.sh
+# Rest of the file remains unchanged
