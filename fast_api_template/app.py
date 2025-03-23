@@ -10,7 +10,7 @@ from .db import create_db_and_tables, engine, get_session
 from .routes import main_router
 
 
-def read(*paths, **kwargs):
+def read(*paths, **kwargs) -> Any:
     """Read the contents of a text file safely.
     >>> read("VERSION")
     """
@@ -56,7 +56,7 @@ app.include_router(main_router)
 
 
 @app.on_event("startup")
-def on_startup():
+def on_startup() -> None:
     create_db_and_tables(engine)
 
 

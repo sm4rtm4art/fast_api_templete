@@ -10,13 +10,13 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[ContentResponse])
-async def list_contents(*, session: Session = ActiveSession):
+async def list_contents(*, session: Session = ActiveSession) -> dict | list | None:
     contents = session.exec(select(Content)).all()
     return contents
 
 
 @router.get("/{id_or_slug}/", response_model=ContentResponse)
-async def query_content(*, id_or_slug: str | int, session: Session = ActiveSession):
+async def query_content(*, id_or_slug: str | int, session: Session = ActiveSession) -> dict | list | None:
     content = session.query(Content).where(
         or_(
             Content.id == id_or_slug,
@@ -34,7 +34,7 @@ async def create_content(
     session: Session = ActiveSession,
     request: Request,
     content: ContentIncoming,
-):
+) -> dict | list | None:
     # set the ownsership of the content to the current user
     db_content = Content.from_orm(content)
     user: User = get_current_user(request=request)
@@ -56,7 +56,7 @@ async def update_content(
     session: Session = ActiveSession,
     request: Request,
     patch: ContentIncoming,
-):
+) -> dict | list | None:
     # Query the content
     content = session.get(Content, content_id)
     if not content:
@@ -79,7 +79,7 @@ async def update_content(
 
 
 @router.delete("/{content_id}/", dependencies=[AuthenticatedUser])
-def delete_content(*, session: Session = ActiveSession, request: Request, content_id: int):
+def delete_content(*, session: Session = ActiveSession, request: Request, content_id: int) -> dict | list | None:
     content = session.get(Content, content_id)
     if not content:
         raise HTTPException(status_code=404, detail="Content not found")

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
@@ -46,24 +47,24 @@ class HashedPassword(str):
     """
 
     @classmethod
-    def __get_validators__(cls):
+    def __get_validators__(cls) -> list[Callable]:
         # one or more validators may be yielded which will be called in the
         # order to validate the input, each validator will receive as an input
         # the value returned from the previous validator
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
-        """Accepts a plain text password and returns a hashed password."""
+    def validate(cls, v: Any) -> str:
         if not isinstance(v, str):
             raise TypeError("string required")
 
-        hashed_password = get_password_hash(v)
-        # you could also return a string here which would mean model.password
-        # would be a string, pydantic won't care but you could end up with some
-        # confusion since the value's type won't match the type annotation
-        # exactly
-        return cls(hashed_password)
+        if "password" in v:
+            # original needed from_attributes=True, but I dropped that because
+            # we need this to work for both Pydantic v1 and v2
+            return cls(get_password_hash(v))
+
+        # assume the value is already hashed
+        return cls(v)
 
 
 class User(SQLModel, table=True):

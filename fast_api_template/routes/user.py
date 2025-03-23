@@ -19,13 +19,13 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[UserResponse], dependencies=[AdminUser])
-async def list_users(*, session: Session = ActiveSession):
+async def list_users(*, session: Session = ActiveSession) -> dict | list | None:
     users = session.exec(select(User)).all()
     return users
 
 
 @router.post("/", response_model=UserResponse, dependencies=[AdminUser])
-async def create_user(*, session: Session = ActiveSession, user: UserCreate):
+async def create_user(*, session: Session = ActiveSession, user: UserCreate) -> dict | list | None:
     # verify user with username doesn't already exist
     try:
         await query_user(session=session, user_id_or_username=user.username)
@@ -52,7 +52,7 @@ async def update_user_password(
     session: Session = ActiveSession,
     request: Request,
     patch: UserPasswordPatch,
-):
+) -> dict | list | None:
     # Query the content
     user = session.get(User, user_id)
     if not user:
@@ -80,7 +80,7 @@ async def update_user_password(
     response_model=UserResponse,
     dependencies=[AuthenticatedUser],
 )
-async def query_user(*, session: Session = ActiveSession, user_id_or_username: str | int):
+async def query_user(*, session: Session = ActiveSession, user_id_or_username: str | int) -> dict | list | None:
     user = session.query(User).where(
         or_(
             User.id == user_id_or_username,
@@ -94,7 +94,7 @@ async def query_user(*, session: Session = ActiveSession, user_id_or_username: s
 
 
 @router.delete("/{user_id}/", dependencies=[AdminUser])
-def delete_user(*, session: Session = ActiveSession, request: Request, user_id: int):
+def delete_user(*, session: Session = ActiveSession, request: Request, user_id: int) -> dict | list | None:
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Content not found")

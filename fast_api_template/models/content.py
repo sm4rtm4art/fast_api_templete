@@ -39,7 +39,7 @@ class ContentResponse(BaseModel):
     tags: list[str]
     user_id: int
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         # tags to model representation
         tags = kwargs.pop("tags", None)
         if tags and isinstance(tags, str):
@@ -59,7 +59,7 @@ class ContentIncoming(BaseModel):
         extra = Extra.allow
         arbitrary_types_allowed = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         # tags to database representation
         tags = kwargs.pop("tags", None)
         if tags and isinstance(tags, list):
@@ -67,7 +67,7 @@ class ContentIncoming(BaseModel):
         super().__init__(*args, **kwargs)
         self.generate_slug()
 
-    def generate_slug(self):
+    def generate_slug(self) -> None:
         """Generate a slug from the title."""
         if self.title:
             self.slug = self.title.lower().replace(" ", "-")

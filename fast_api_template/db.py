@@ -10,11 +10,11 @@ engine = create_engine(
 )
 
 
-def create_db_and_tables(engine):
+def create_db_and_tables(engine) -> None:
     SQLModel.metadata.create_all(engine)
 
 
-def get_session():
+def get_session() -> None:
     with Session(engine) as session:
         yield session
 

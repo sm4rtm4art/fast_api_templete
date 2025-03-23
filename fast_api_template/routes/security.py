@@ -24,7 +24,7 @@ router = APIRouter()
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-):
+) -> Any:
     user = authenticate_user(get_user, form_data.username, form_data.password)
     if not user or not isinstance(user, User):
         raise HTTPException(
@@ -50,7 +50,7 @@ async def login_for_access_token(
 
 
 @router.post("/refresh_token", response_model=Token)
-async def refresh_token(form_data: RefreshToken):
+async def refresh_token(form_data: RefreshToken) -> Any:
     user = await validate_token(token=form_data.refresh_token)
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

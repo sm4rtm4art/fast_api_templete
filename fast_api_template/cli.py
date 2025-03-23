@@ -17,7 +17,7 @@ def run(
     host: str = settings.server.host,
     log_level: str = settings.server.log_level,
     reload: bool = settings.server.reload,
-):  # pragma: no cover
+) -> None:  # pragma: no cover
     """Run the API server."""
     uvicorn.run(
         "fast_api_template.app:app",
@@ -29,7 +29,7 @@ def run(
 
 
 @cli.command()
-def create_user(username: str, password: str, superuser: bool = False):
+def create_user(username: str, password: str, superuser: bool = False) -> Any:
     """Create user"""
     create_db_and_tables(engine)
     with Session(engine) as session:
@@ -42,7 +42,7 @@ def create_user(username: str, password: str, superuser: bool = False):
 
 
 @cli.command()
-def shell():  # pragma: no cover
+def shell() -> None:  # pragma: no cover
     """Opens an interactive shell with objects auto imported"""
     _vars = {
         "app": app,
