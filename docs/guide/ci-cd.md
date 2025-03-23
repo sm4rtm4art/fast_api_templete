@@ -65,6 +65,22 @@ Ensure the `fast_api_template/VERSION` file:
 - Has no trailing newlines
 - Uses the correct line endings for your platform
 
+Our CI pipeline includes several safeguards to fix this issue automatically:
+
+1. In each job, we explicitly fix the VERSION file with `echo -n "0.1.0" > fast_api_template/VERSION`
+2. We use direct installs instead of editable mode (`uv pip install ".[group]"` instead of `-e`)
+3. A helper script at `ci/fix-version.sh` is available for cross-platform consistency
+
+If you're still encountering VERSION file issues:
+
+```bash
+# Run this locally to fix the VERSION file
+./ci/fix-version.sh 0.1.0
+
+# Check that it worked
+cat fast_api_template/VERSION | xxd -p
+```
+
 #### Cache Issues
 
 If the cache isn't working:

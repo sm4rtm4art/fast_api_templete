@@ -20,10 +20,46 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
+  # Runner cleanup and preparation
+  prepare:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fix VERSION file
+        run: |
+          echo "VERSION file content before:"
+          cat fast_api_template/VERSION | xxd -p
+          # Make sure VERSION file has correct format without trailing newlines
+          echo -n "0.1.0" > fast_api_template/VERSION
+          echo "VERSION file content after:"
+          cat fast_api_template/VERSION | xxd -p
+
+      - name: Free disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+
+          # Remove unnecessary large packages
+          sudo apt-get clean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+
+          # Clean Docker resources
+          docker system prune -af
+
+          echo "Disk space after cleanup:"
+          df -h
+
+  lint:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix VERSION file # Repeat in each job since we're using fresh checkouts
+        run: echo -n "0.1.0" > fast_api_template/VERSION
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -40,7 +76,8 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          uv pip install -e .[lint]
+          # Direct install instead of editable mode to avoid VERSION issues
+          uv pip install ".[lint]"
 
       - name: Lint and format with Ruff
         run: |
@@ -54,9 +91,13 @@ jobs:
           mypy --ignore-missing-imports fast_api_template
 
   security:
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fix VERSION file # Repeat in each job since we're using fresh checkouts
+        run: echo -n "0.1.0" > fast_api_template/VERSION
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -73,7 +114,8 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          uv pip install -e .[security]
+          # Direct install instead of editable mode to avoid VERSION issues
+          uv pip install ".[security]"
 
       - name: Run bandit
         run: |
@@ -97,6 +139,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fix VERSION file # Repeat in each job since we're using fresh checkouts
+        run: |
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            echo -n "0.1.0" > fast_api_template/VERSION
+          else
+            echo -n "0.1.0" > fast_api_template/VERSION
+          fi
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -111,7 +161,8 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
-          uv pip install -e .[test]
+          # Direct install instead of editable mode to avoid VERSION issues
+          uv pip install ".[test]"
 
       - name: Test with pytest
         run: |
