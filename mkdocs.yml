@@ -49,6 +49,7 @@ nav:
     - Configuration: guide/configuration.md
     - Development: guide/development.md
     - Deployment: guide/deployment.md
+    - CI/CD: guide/ci-cd.md
   - API Reference: api-reference.md
   - Project Structure: PROJECT_STRUCTURE.md
   - Contributing: CONTRIBUTING.md
