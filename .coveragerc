@@ -1,8 +1,8 @@
 [run]
-source = project_name
+source = fast_api_template
 
 [report]
 omit =
     */python?.?/*
     */site-packages/nose/*
-    project_name/__main__.py
+    fast_api_template/__main__.py
