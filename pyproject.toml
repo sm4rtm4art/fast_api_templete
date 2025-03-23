@@ -96,6 +96,8 @@ select = ["E", "F", "B", "I", "N", "UP", "SIM", "TCH"]
 ignore = [
     # Function call in argument defaults - common in FastAPI with Depends
     "B008",
+    # Allow if-else blocks instead of forcing ternary operators
+    "SIM108",
 ]
 
 # Import sorting configuration
