@@ -1,38 +1,37 @@
 # FastAPI Project Template
 
-The base to start an openapi project featuring: SQLModel, Typer, FastAPI, JWT Token Auth, Interactive Shell, Management Commands. 
+The base to start an openapi project featuring: SQLModel, Typer, FastAPI, JWT Token Auth, Interactive Shell, Management Commands.
 
 See also
 
--  [Python-Project-Template](https://github.com/rochacbruno/python-project-template/) for a lean, low dependency Python app.
--  [Flask-Project-Template](https://github.com/rochacbruno/flask-project-template/) for a full feature Flask project including database, API, admin interface, etc.
-
+- [Python-Project-Template](https://github.com/rochacbruno/python-project-template/) for a lean, low dependency Python app.
+- [Flask-Project-Template](https://github.com/rochacbruno/flask-project-template/) for a full feature Flask project including database, API, admin interface, etc.
 
 ### HOW TO USE THIS TEMPLATE
 
 > **DO NOT FORK** this is meant to be used from **[Use this template](https://github.com/rochacbruno/fastapi-project-template/generate)** feature.
 
 1. Click on **[Use this template](https://github.com/rochacbruno/fastapi-project-template/generate)**
-3. Give a name to your project  
+2. Give a name to your project
    (e.g. `my_awesome_project` recommendation is to use all lowercase and underscores separation for repo names.)
-3. Wait until the first run of CI finishes  
+3. Wait until the first run of CI finishes
    (Github Actions will process the template and commit to your new repo)
-4. If you want [codecov](https://about.codecov.io/sign-up/) Reports and Automatic Release to [PyPI](https://pypi.org)  
-  On the new repository `settings->secrets` add your `PIPY_API_TOKEN` and `CODECOV_TOKEN` (get the tokens on respective websites)
-4. Read the file [CONTRIBUTING.md](CONTRIBUTING.md)
-5. Then clone your new project and happy coding!
+4. If you want [codecov](https://about.codecov.io/sign-up/) Reports and Automatic Release to [PyPI](https://pypi.org)
+   On the new repository `settings->secrets` add your `PIPY_API_TOKEN` and `CODECOV_TOKEN` (get the tokens on respective websites)
+5. Read the file [CONTRIBUTING.md](CONTRIBUTING.md)
+6. Then clone your new project and happy coding!
 
 > **NOTE**: **WAIT** until first CI run on github actions before cloning your new project.
 
 ### What is included on this template?
 
 - 🖼️ The base to start an openapi project featuring: SQLModel, Typer, FastAPI, VueJS.
-- 📦 A basic [setup.py](setup.py) file to provide installation, packaging and distribution for your project.  
+- 📦 A basic [setup.py](setup.py) file to provide installation, packaging and distribution for your project.
   Template uses setuptools because it's the de-facto standard for Python packages, you can run `make switch-to-poetry` later if you want.
 - 🤖 A [Makefile](Makefile) with the most useful commands to install, test, lint, format and release your project.
 - 📃 Documentation structure using [mkdocs](http://www.mkdocs.org)
 - 💬 Auto generation of change log using **gitchangelog** to keep a HISTORY.md file automatically based on your commit history on every release.
-- 🐋 A simple [Containerfile](Containerfile) to build a container image for your project.  
+- 🐋 A simple [Containerfile](Containerfile) to build a container image for your project.
   `Containerfile` is a more open standard for building container images than Dockerfile, you can use buildah or docker with this file.
 - 🧪 Testing structure using [pytest](https://docs.pytest.org/en/latest/)
 - ✅ Code linting using [flake8](https://flake8.pycqa.org/en/latest/)
@@ -41,7 +40,7 @@ See also
 - 🎯 Entry points to execute your program using `python -m <fast_api_template>` or `$ fast_api_template` with basic CLI argument parsing.
 - 🔄 Continuous integration using [Github Actions](.github/workflows/) with jobs to lint, test and release your project on Linux, Mac and Windows environments.
 
-> Curious about architectural decisions on this template? read [ABOUT_THIS_TEMPLATE.md](ABOUT_THIS_TEMPLATE.md)  
+> Curious about architectural decisions on this template? read [ABOUT_THIS_TEMPLATE.md](ABOUT_THIS_TEMPLATE.md)
 > If you want to contribute to this template please open an [issue](https://github.com/rochacbruno/fastapi-project-template/issues) or fork and send a PULL REQUEST.
 
 [❤️ Sponsor this project](https://github.com/sponsors/rochacbruno/)
@@ -49,6 +48,7 @@ See also
 <!--  DELETE THE LINES ABOVE THIS AND WRITE YOUR PROJECT README BELOW -->
 
 ---
+
 # fast_api_template
 
 [![codecov](https://codecov.io/gh/sm4rtm4art/FAST_API_TEMPLATE/branch/main/graph/badge.svg?token=FAST_API_TEMPLATE_token_here)](https://codecov.io/gh/sm4rtm4art/FAST_API_TEMPLATE)
@@ -59,6 +59,7 @@ Awesome fast_api_template created by sm4rtm4art
 ## Install
 
 from source
+
 ```bash
 git clone https://github.com/sm4rtm4art/FAST_API_TEMPLATE fast_api_template
 cd fast_api_template
@@ -123,7 +124,7 @@ Arguments:
 
 Options:
   --superuser / --no-superuser  [default: no-superuser]
-  --help 
+  --help
 ```
 
 **IMPORTANT** To create an admin user on the first run:
@@ -137,7 +138,7 @@ fast_api_template create-user admin admin --superuser
 You can enter an interactive shell with all the objects imported.
 
 ```bash
-❯ fast_api_template shell       
+❯ fast_api_template shell
 Auto imports: ['app', 'settings', 'User', 'engine', 'cli', 'create_user', 'select', 'session', 'Content']
 
 In [1]: session.query(Content).all()
@@ -155,12 +156,11 @@ Run with `fast_api_template run` and access http://127.0.0.1:8000/docs
 
 ![](https://raw.githubusercontent.com/rochacbruno/fastapi-project-template/master/docs/api.png)
 
-
 **For some api calls you must authenticate** using the user created with `fast_api_template create-user`.
 
 ## Testing
 
-``` bash
+```bash
 ❯ make test
 Black All done! ✨ 🍰 ✨
 13 files would be left unchanged.
@@ -168,12 +168,12 @@ Isort All done! ✨ 🍰 ✨
 6 files would be left unchanged.
 Success: no issues found in 13 source files
 ================================ test session starts ===========================
-platform linux -- Python 3.9.6, pytest-6.2.5, py-1.10.0, pluggy-1.0.0 -- 
+platform linux -- Python 3.9.6, pytest-6.2.5, py-1.10.0, pluggy-1.0.0 --
 /fastapi-project-template/.venv/bin/python3
 cachedir: .pytest_cache
 rootdir: /fastapi-project-template
 plugins: cov-2.12.1
-collected 10 items                                                                                                                               
+collected 10 items
 
 tests/test_app.py::test_using_testing_db PASSED                           [ 10%]
 tests/test_app.py::test_index PASSED                                      [ 20%]
@@ -216,7 +216,6 @@ make lint  # checks for linting errors
 make fmt   # formats the code
 ```
 
-
 ## Configuration
 
 This project uses [Dynaconf](https://dynaconf.com) to manage configuration.
@@ -254,6 +253,7 @@ echo = true
 > `dynaconf_merge` is a boolean that tells if the settings should be merged with the default settings defined in fast_api_template/default.toml.
 
 ### As environment variables
+
 ```bash
 export fast_api_template_KEY=value
 export fast_api_template_KEY="@int 42"
@@ -280,3 +280,21 @@ Read more on https://dynaconf.com
 ## Development
 
 Read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+
+### Pre-commit hooks
+
+This project uses pre-commit hooks to ensure code quality. To install the hooks:
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install the git hooks
+pre-commit install
+```
+
+The pre-commit hooks will run automatically on git commit. You can also run them manually:
+
+```bash
+pre-commit run --all-files
+```
