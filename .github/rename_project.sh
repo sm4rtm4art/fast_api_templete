@@ -20,8 +20,8 @@ original_author="sm4rtm4art"
 original_name="fast_api_template"
 original_urlname="FAST_API_TEMPLATE"
 original_description="Awesome fast_api_template created by sm4rtm4art"
-# for filename in $(find . -name "*.*") 
-for filename in $(git ls-files) 
+# for filename in $(find . -name "*.*")
+for filename in $(git ls-files)
 do
     sed -i "s/$original_author/$author/gI" $filename
     sed -i "s/$original_name/$name/gI" $filename

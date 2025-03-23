@@ -48,7 +48,6 @@ def test_user_by_username(api_client_authenticated):
 
 def test_user_by_bad_id(api_client_authenticated):
     response = api_client_authenticated.get("/user/42")
-    result = response.json()
     assert response.status_code == 404
 
 
@@ -58,7 +57,6 @@ def test_user_by_bad_username(api_client_authenticated):
 
 
 def test_user_change_password_no_auth(api_client):
-
     # user doesn't exist
     response = api_client.patch(
         "/user/1/password/",
@@ -68,7 +66,6 @@ def test_user_change_password_no_auth(api_client):
 
 
 def test_user_change_password_insufficient_auth(api_client):
-
     # login as non-superuser
     token = api_client.post(
         "/token",
@@ -89,7 +86,6 @@ def test_user_change_password_insufficient_auth(api_client):
 
 
 def test_user_change_password(api_client_authenticated):
-
     # user doesn't exist
     response = api_client_authenticated.patch(
         "/user/42/password/",
@@ -116,18 +112,16 @@ def test_user_change_password(api_client_authenticated):
 
 
 def test_user_delete_no_auth(api_client):
-
     # user doesn't exist
     response = api_client.delete("/user/42/")
     assert response.status_code == 401
 
     # valid delete request but not authorized
-    response = api_client.delete(f"/user/1/")
+    response = api_client.delete("/user/1/")
     assert response.status_code == 401
 
 
 def test_user_delete(api_client_authenticated):
-
     # user doesn't exist
     response = api_client_authenticated.delete("/user/42/")
     assert response.status_code == 404
@@ -149,7 +143,6 @@ def test_user_delete(api_client_authenticated):
 
 
 def test_bad_login(api_client):
-
     response = api_client.post(
         "/token",
         data={"username": "admin", "password": "admin1"},
@@ -159,7 +152,6 @@ def test_bad_login(api_client):
 
 
 def test_good_login(api_client):
-
     response = api_client.post(
         "/token",
         data={"username": "admin", "password": "admin"},
@@ -169,7 +161,6 @@ def test_good_login(api_client):
 
 
 def test_refresh_token(api_client_authenticated):
-
     # create dummy account for test
     response = api_client_authenticated.post(
         "/user/",
@@ -199,9 +190,7 @@ def test_refresh_token(api_client_authenticated):
     assert result["refresh_token"]
 
     # use refresh_token to update access_token and refresh_token
-    response = api_client_authenticated.post(
-        "/refresh_token", json={"refresh_token": result["refresh_token"]}
-    )
+    response = api_client_authenticated.post("/refresh_token", json={"refresh_token": result["refresh_token"]})
 
     assert response.status_code == 200
     result = response.json()
@@ -220,28 +209,22 @@ def test_refresh_token(api_client_authenticated):
     assert response.status_code == 404
 
     # try to refresh tokens
-    response = api_client_authenticated.post(
-        "/refresh_token", json={"refresh_token": refresh_token}
-    )
+    response = api_client_authenticated.post("/refresh_token", json={"refresh_token": refresh_token})
 
     result = response.json()
     assert response.status_code == 401
 
 
 def test_bad_refresh_token(api_client):
+    bad_token = "thisaintnovalidtoken"
 
-    BAD_TOKEN = "thisaintnovalidtoken"
-
-    response = api_client.post(
-        "/refresh_token", json={"refresh_token": BAD_TOKEN}
-    )
+    response = api_client.post("/refresh_token", json={"refresh_token": bad_token})
 
     assert response.status_code == 401
 
 
 # Need to add test for updating passwords with stale tokens
 def test_stale_token(api_client_authenticated):
-
     # create non-admin account
     response = api_client_authenticated.post(
         "/user/",
@@ -267,17 +250,14 @@ def test_stale_token(api_client_authenticated):
     result = response.json()
 
     # use refresh_token to update access_token and refresh_token
-    response = api_client_authenticated.post(
-        "/refresh_token", json={"refresh_token": result["refresh_token"]}
-    )
+    response = api_client_authenticated.post("/refresh_token", json={"refresh_token": result["refresh_token"]})
 
     assert response.status_code == 200
     result = response.json()
 
     # set stale access_token
-    api_client_authenticated.headers[
-        "Authorization"
-    ] = f"Bearer {result['access_token']}"
+    auth_header = f"Bearer {result['access_token']}"
+    api_client_authenticated.headers["Authorization"] = auth_header
 
     response = api_client_authenticated.patch(
         f"/user/{user_id}/password/",

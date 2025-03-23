@@ -88,29 +88,15 @@ path = "fast_api_template/VERSION"
 [tool.hatch.build.targets.wheel]
 packages = ["fast_api_template"]
 
-[tool.black]
-line-length = 88
-target-version = ["py312"]
-
-[tool.isort]
-profile = "black"
-line_length = 88
-
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "B", "I", "N", "UP", "SIM", "TCH"]
 ignore = [
-    # Function call in argument defaults
+    # Function call in argument defaults - common in FastAPI with Depends
     "B008",
-    # Exception handling issues
-    "B904",
-    # Nested if statements
-    "SIM102",
-    # Unused imports
-    "F401",
-    # Deprecated typing imports
-    "UP035",
 ]
 
 [tool.mypy]

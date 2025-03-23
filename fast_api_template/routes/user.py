@@ -1,5 +1,3 @@
-from typing import List, Union
-
 from fastapi import APIRouter, Request
 from fastapi.exceptions import HTTPException
 from sqlmodel import Session, or_, select
@@ -20,7 +18,7 @@ from ..security import (
 router = APIRouter()
 
 
-@router.get("/", response_model=List[UserResponse], dependencies=[AdminUser])
+@router.get("/", response_model=list[UserResponse], dependencies=[AdminUser])
 async def list_users(*, session: Session = ActiveSession):
     users = session.exec(select(User)).all()
     return users
@@ -28,7 +26,6 @@ async def list_users(*, session: Session = ActiveSession):
 
 @router.post("/", response_model=UserResponse, dependencies=[AdminUser])
 async def create_user(*, session: Session = ActiveSession, user: UserCreate):
-
     # verify user with username doesn't already exist
     try:
         await query_user(session=session, user_id_or_username=user.username)
@@ -64,9 +61,7 @@ async def update_user_password(
     # Check the user can update the password
     current_user: User = get_current_user(request=request)
     if user.id != current_user.id and not current_user.superuser:
-        raise HTTPException(
-            status_code=403, detail="You can't update this user password"
-        )
+        raise HTTPException(status_code=403, detail="You can't update this user password")
 
     if not patch.password == patch.password_confirm:
         raise HTTPException(status_code=400, detail="Passwords don't match")
@@ -85,9 +80,7 @@ async def update_user_password(
     response_model=UserResponse,
     dependencies=[AuthenticatedUser],
 )
-async def query_user(
-    *, session: Session = ActiveSession, user_id_or_username: Union[str, int]
-):
+async def query_user(*, session: Session = ActiveSession, user_id_or_username: str | int):
     user = session.query(User).where(
         or_(
             User.id == user_id_or_username,
@@ -101,18 +94,14 @@ async def query_user(
 
 
 @router.delete("/{user_id}/", dependencies=[AdminUser])
-def delete_user(
-    *, session: Session = ActiveSession, request: Request, user_id: int
-):
+def delete_user(*, session: Session = ActiveSession, request: Request, user_id: int):
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Content not found")
     # Check the user is not deleting himself
     current_user = get_current_user(request=request)
     if user.id == current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You can't delete yourself"
-        )
+        raise HTTPException(status_code=403, detail="You can't delete yourself")
     session.delete(user)
     session.commit()
     return {"ok": True}

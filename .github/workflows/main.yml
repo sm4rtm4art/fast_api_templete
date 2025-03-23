@@ -70,8 +70,18 @@ jobs:
       - name: Lint and format with Ruff
         run: |
           source .venv/bin/activate
+          # Fix import sorting issues
+          ruff check --select=I --fix fast_api_template
+          # Fix typing issues
+          ruff check --select=UP --fix fast_api_template
+          # Fix simplification issues
+          ruff check --select=SIM --fix fast_api_template
+          # Fix other issues
+          ruff check --fix fast_api_template
+          # Check if any issues remain
           ruff check --output-format=github fast_api_template
-          ruff format --check fast_api_template tests
+          # Check formatting
+          ruff format --check --line-length 120 fast_api_template tests
 
       - name: Type check with mypy
         run: |

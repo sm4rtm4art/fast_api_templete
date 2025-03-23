@@ -60,4 +60,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 EXPOSE ${PORT}
 
 # Run the application in production mode
-CMD ["uvicorn", "fast_api_template.app:app", "--host=0.0.0.0", "--port=${PORT}", "--workers=4"] 
+CMD ["uvicorn", "fast_api_template.app:app", "--host=0.0.0.0", "--port=${PORT}", "--workers=4"]

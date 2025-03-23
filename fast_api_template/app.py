@@ -1,11 +1,9 @@
-import io
 import os
 import time
-from typing import Dict
 
-from fastapi import FastAPI, Depends
-from starlette.middleware.cors import CORSMiddleware
+from fastapi import Depends, FastAPI
 from sqlmodel import Session, select
+from starlette.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import create_db_and_tables, engine, get_session
@@ -17,7 +15,7 @@ def read(*paths, **kwargs):
     >>> read("VERSION")
     """
     content = ""
-    with io.open(
+    with open(
         os.path.join(os.path.dirname(__file__), *paths),
         encoding=kwargs.get("encoding", "utf8"),
     ) as open_file:
@@ -63,7 +61,7 @@ def on_startup():
 
 
 @app.get("/health", tags=["Health"])
-async def health_check(session: Session = Depends(get_session)) -> Dict[str, str]:
+async def health_check(session: Session = Depends(get_session)) -> dict[str, str]:
     """
     Health check endpoint that also verifies database connectivity.
     """
@@ -74,7 +72,7 @@ async def health_check(session: Session = Depends(get_session)) -> Dict[str, str
         db_status = "healthy"
     except Exception:
         db_status = "unhealthy"
-    
+
     return {
         "status": "healthy",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),

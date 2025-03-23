@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable, List, Optional, Union
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
@@ -31,7 +31,7 @@ class RefreshToken(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 
 class HashedPassword(str):
@@ -67,14 +67,14 @@ class HashedPassword(str):
 
 
 class User(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     username: str = Field(sa_column_kwargs={"unique": True})
     password: HashedPassword
     superuser: bool = False
     disabled: bool = False
 
     # it populates the .user attribute on the Content Model
-    contents: List["Content"] = Relationship(back_populates="user")
+    contents: list["Content"] = Relationship(back_populates="user")
 
 
 class UserResponse(BaseModel):
@@ -86,7 +86,7 @@ class UserResponse(BaseModel):
     username: str
     disabled: bool
     superuser: bool
-    contents: Optional[List[ContentResponse]] = Field(default_factory=list)
+    contents: list[ContentResponse] | None = Field(default_factory=list)
 
 
 class UserCreate(BaseModel):
@@ -113,35 +113,23 @@ def get_password_hash(password) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(
-    data: dict, expires_delta: Optional[timedelta] = None
-) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=15))
     to_encode.update({"exp": expire, "scope": "access_token"})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def create_refresh_token(
-    data: dict, expires_delta: Optional[timedelta] = None
-) -> str:
+def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=15))
     to_encode.update({"exp": expire, "scope": "refresh_token"})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def authenticate_user(
-    get_user: Callable, username: str, password: str
-) -> Union[User, bool]:
+def authenticate_user(get_user: Callable, username: str, password: str) -> User | bool:
     user = get_user(username)
     if not user:
         return False
@@ -150,36 +138,32 @@ def authenticate_user(
     return user
 
 
-def get_user(username) -> Optional[User]:
+def get_user(username) -> User | None:
     with Session(engine) as session:
         return session.query(User).where(User.username == username).first()
 
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme), request: Request = None, fresh=False
-) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme), request: Request = None, fresh=False) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    if request:
-        if authorization := request.headers.get("authorization"):
-            try:
-                token = authorization.split(" ")[1]
-            except IndexError:
-                raise credentials_exception
+    if request and (authorization := request.headers.get("authorization")):
+        try:
+            token = authorization.split(" ")[1]
+        except IndexError as err:
+            raise credentials_exception from err
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
+    except JWTError as err:
+        raise credentials_exception from err
     user = get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
@@ -200,9 +184,7 @@ async def get_current_active_user(
 AuthenticatedUser = Depends(get_current_active_user)
 
 
-def get_current_fresh_user(
-    token: str = Depends(oauth2_scheme), request: Request = None
-) -> User:
+def get_current_fresh_user(token: str = Depends(oauth2_scheme), request: Request = None) -> User:
     return get_current_user(token, request, True)
 
 
@@ -213,9 +195,7 @@ async def get_current_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if not current_user.superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not an admin user"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not an admin user")
     return current_user
 
 
@@ -223,6 +203,5 @@ AdminUser = Depends(get_current_admin_user)
 
 
 async def validate_token(token: str = Depends(oauth2_scheme)) -> User:
-
     user = get_current_user(token=token)
     return user

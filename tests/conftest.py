@@ -1,9 +1,11 @@
+import contextlib
 import os
 import sys
+
 import pytest
 from fastapi.testclient import TestClient
-from typer.testing import CliRunner
 from sqlalchemy.exc import IntegrityError
+from typer.testing import CliRunner
 
 # This next line ensures tests uses its own database and settings environment
 os.environ["FORCE_ENV_FOR_DYNACONF"] = "testing"  # noqa
@@ -46,11 +48,8 @@ def api_client():
 
 @pytest.fixture(scope="function")
 def api_client_authenticated():
-
-    try:
+    with contextlib.suppress(IntegrityError):
         create_user("admin", "admin", superuser=True)
-    except IntegrityError:
-        pass
 
     client = TestClient(app)
     token = client.post(
@@ -69,10 +68,8 @@ def cli_client():
 
 def remove_db():
     # Remove the database file
-    try:
+    with contextlib.suppress(FileNotFoundError):
         os.remove("testing.db")
-    except FileNotFoundError:
-        pass
 
 
 @pytest.fixture(scope="session", autouse=True)

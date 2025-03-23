@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel, Extra
 from sqlmodel import Field, Relationship, SQLModel
@@ -14,16 +14,14 @@ class Content(SQLModel, table=True):
     Replace with the *things* you do in your application.
     """
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     title: str
     slug: str = Field(default=None)
     text: str
     published: bool = False
-    created_time: str = Field(
-        default_factory=lambda: datetime.now().isoformat()
-    )
+    created_time: str = Field(default_factory=lambda: datetime.now().isoformat())
     tags: str = Field(default="")
-    user_id: Optional[int] = Field(foreign_key="user.id")
+    user_id: int | None = Field(foreign_key="user.id")
 
     # It populates a `.contents` attribute to the `User` model.
     user: Optional["User"] = Relationship(back_populates="contents")
@@ -38,7 +36,7 @@ class ContentResponse(BaseModel):
     text: str
     published: bool
     created_time: str
-    tags: List[str]
+    tags: list[str]
     user_id: int
 
     def __init__(self, *args, **kwargs):
@@ -52,10 +50,10 @@ class ContentResponse(BaseModel):
 class ContentIncoming(BaseModel):
     """This is the serializer used for POST/PATCH requests"""
 
-    title: Optional[str]
-    text: Optional[str]
-    published: Optional[bool] = False
-    tags: Optional[Union[List[str], str]]
+    title: str | None
+    text: str | None
+    published: bool | None = False
+    tags: list[str] | str | None
 
     class Config:
         extra = Extra.allow
