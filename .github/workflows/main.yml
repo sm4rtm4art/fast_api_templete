@@ -26,15 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix VERSION file
-        run: |
-          echo "VERSION file content before:"
-          cat fast_api_template/VERSION | xxd -p
-          # Make sure VERSION file has correct format without trailing newlines
-          echo -n "0.1.0" > fast_api_template/VERSION
-          echo "VERSION file content after:"
-          cat fast_api_template/VERSION | xxd -p
-
       - name: Free disk space
         run: |
           echo "Disk space before cleanup:"
@@ -58,26 +49,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix VERSION file # Repeat in each job since we're using fresh checkouts
-        run: echo -n "0.1.0" > fast_api_template/VERSION
-
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # Set up proper UV caching
+      # Set up proper UV caching with latest version
       - name: Install and cache UV
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
+      # Install dependencies directly from PyPI instead of local project
       - name: Install dependencies
         run: |
           uv venv
           source .venv/bin/activate
-          # Direct install instead of editable mode to avoid VERSION issues
-          uv pip install ".[lint]"
+          uv pip install ruff mypy
 
       - name: Lint and format with Ruff
         run: |
@@ -96,26 +84,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix VERSION file # Repeat in each job since we're using fresh checkouts
-        run: echo -n "0.1.0" > fast_api_template/VERSION
-
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # Set up proper UV caching
+      # Set up proper UV caching with latest version
       - name: Install and cache UV
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
+      # Install dependencies directly from PyPI
       - name: Install dependencies
         run: |
           uv venv
           source .venv/bin/activate
-          # Direct install instead of editable mode to avoid VERSION issues
-          uv pip install ".[security]"
+          uv pip install bandit safety
 
       - name: Run bandit
         run: |
@@ -139,30 +124,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix VERSION file # Repeat in each job since we're using fresh checkouts
-        run: |
-          if [ "${{ runner.os }}" != "Windows" ]; then
-            echo -n "0.1.0" > fast_api_template/VERSION
-          else
-            echo -n "0.1.0" > fast_api_template/VERSION
-          fi
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Set up proper UV caching
+      # Set up proper UV caching with latest version
       - name: Install and cache UV
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
+      # Install test dependencies directly from PyPI
       - name: Install dependencies
         run: |
           uv venv
-          # Direct install instead of editable mode to avoid VERSION issues
-          uv pip install ".[test]"
+          uv pip install pytest pytest-cov pytest-xdist pytest-mock pytest-picked coverage fastapi uvicorn sqlmodel typer dynaconf jinja2 python-jose[cryptography] passlib[bcrypt] python-multipart psycopg2-binary httpx pydantic structlog
 
       - name: Test with pytest
         run: |

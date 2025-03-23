@@ -12,15 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix VERSION file
-        run: |
-          echo "VERSION file content before:"
-          cat fast_api_template/VERSION | xxd -p
-          # Make sure VERSION file has correct format without trailing newlines
-          echo -n "0.1.0" > fast_api_template/VERSION
-          echo "VERSION file content after:"
-          cat fast_api_template/VERSION | xxd -p
-
       - name: Free disk space
         run: |
           echo "Disk space before cleanup:"
@@ -50,8 +41,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fix VERSION file
-        run: echo -n "0.1.0" > fast_api_template/VERSION
+      # Extract version from tag
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      # Ensure VERSION file has correct content
+      - name: Update VERSION file
+        run: echo -n "${{ steps.version.outputs.VERSION }}" > fast_api_template/VERSION
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -59,24 +56,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install and cache UV
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
       - name: Install build dependencies
         run: |
-          # Direct install without editable mode
           uv pip install build twine
-
-      - name: Extract version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      # Update the VERSION file to match the tag
-      - name: Update VERSION file with tag
-        run: echo -n "${VERSION}" > fast_api_template/VERSION
-        env:
-          VERSION: ${{ steps.version.outputs.VERSION }}
 
       - name: Build package
         run: python -m build

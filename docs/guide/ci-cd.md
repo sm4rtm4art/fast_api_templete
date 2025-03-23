@@ -59,19 +59,17 @@ If you see an error like:
 ValueError: Error getting the version from source `regex`: unable to parse the version from the file
 ```
 
-Ensure the `fast_api_template/VERSION` file:
+Our CI pipelines use several strategies to avoid this issue:
 
-- Contains only the version number (e.g., `0.1.0`)
-- Has no trailing newlines
-- Uses the correct line endings for your platform
+1. **Direct dependencies installation**: Instead of installing the project in development mode, we install all dependencies directly from PyPI, bypassing the need to parse the VERSION file.
 
-Our CI pipeline includes several safeguards to fix this issue automatically:
+2. **Latest UV action**: We use `astral-sh/setup-uv@v5` which provides better compatibility and features compared to earlier versions.
 
-1. In each job, we explicitly fix the VERSION file with `echo -n "0.1.0" > fast_api_template/VERSION`
-2. We use direct installs instead of editable mode (`uv pip install ".[group]"` instead of `-e`)
-3. A helper script at `ci/fix-version.sh` is available for cross-platform consistency
+3. **VERSION file handling**: We ensure the VERSION file is properly formatted without trailing newlines.
 
-If you're still encountering VERSION file issues:
+4. **Helper script**: The `ci/fix-version.sh` script provides a cross-platform way to fix VERSION file issues.
+
+If you're still encountering VERSION file issues locally:
 
 ```bash
 # Run this locally to fix the VERSION file
