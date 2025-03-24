@@ -1,6 +1,9 @@
 import contextlib
 import os
+import platform
 import sys
+import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -67,9 +70,27 @@ def cli_client():
 
 
 def remove_db():
-    # Remove the database file
-    with contextlib.suppress(FileNotFoundError):
-        os.remove("testing.db")
+    # Get database path
+    db_path = Path("testing.db")
+
+    # Close any open connections before removing the file
+    db.engine.dispose()
+
+    # Give Windows a moment to release file locks
+    if platform.system() == "Windows":
+        time.sleep(1)
+
+    # Try to remove the file multiple times on Windows
+    max_attempts = 5 if platform.system() == "Windows" else 1
+
+    for attempt in range(max_attempts):
+        try:
+            if db_path.exists():
+                db_path.unlink()
+            break
+        except (PermissionError, OSError):
+            if attempt < max_attempts - 1:
+                time.sleep(1)
 
 
 @pytest.fixture(scope="session", autouse=True)
