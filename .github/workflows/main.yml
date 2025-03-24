@@ -120,10 +120,10 @@ jobs:
         run: |
           source .venv/bin/activate
           if [ -n "$SAFETY_API_KEY" ]; then
-            safety scan
+            safety scan --non-interactive
           else
             echo "SAFETY_API_KEY not found, running safety scan in basic mode"
-            safety scan --api-key "" || true
+            safety scan --api-key "" --non-interactive || true
           fi
 
   test:
