@@ -22,11 +22,14 @@ COPY --from=uv /uvx /usr/local/bin/uvx
 # Set up workdir
 WORKDIR /app
 
-# Copy dependency files first for better caching
-COPY pyproject.toml ./
+# Copy package metadata files for better caching
+COPY pyproject.toml LICENSE README.md MANIFEST.in HISTORY.md ./
 
-# Install dependencies with UV
-RUN uv pip install --system -e .
+# Install dependencies with UV - don't use editable mode for Docker builds
+RUN uv pip install --system .
+
+# Copy the actual package code
+COPY fast_api_template ./fast_api_template
 
 # Runtime stage
 FROM python:3.12-slim
