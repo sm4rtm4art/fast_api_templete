@@ -127,23 +127,35 @@ def authenticate_user(username: str, password: str) -> User | bool:
 
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+    """Create a new access token with the given data and expiration."""
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+
+    # Set token expiration
+    base_time = datetime.utcnow()
+    delta = expires_delta or timedelta(minutes=15)
+    expire = base_time + delta
+
+    # Add expiration to payload
     to_encode.update({"exp": expire})
+
+    # Encode the token
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
 def create_refresh_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+    """Create a new refresh token with the given data and expiration."""
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(days=7)
+
+    # Set token expiration
+    base_time = datetime.utcnow()
+    delta = expires_delta or timedelta(days=7)
+    expire = base_time + delta
+
+    # Add expiration to payload
     to_encode.update({"exp": expire})
+
+    # Encode the token
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
