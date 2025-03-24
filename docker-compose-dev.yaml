@@ -13,7 +13,8 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
     volumes:
-      - .:/home/app/web
+      - ./fast_api_template:/home/app/web/fast_api_template
+      - ./pyproject.toml:/home/app/web/pyproject.toml
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
