@@ -8,6 +8,44 @@ help:             ## Show the help.
 	@echo "Targets:"
 	@fgrep "##" Makefile | fgrep -v fgrep
 
+.PHONY: setup
+setup:            ## Complete project setup (env, deps, pre-commit, db).
+	@echo "Setting up project..."
+	@make install
+	@make pre-commit
+	@make db-create
+	@make db-migrate
+	@echo "Setup complete! Run 'make docker-run' to start the application."
+
+.PHONY: setup-dev
+setup-dev:        ## Development environment setup with Docker.
+	@echo "Setting up development environment..."
+	@make docker-build
+	@make docker-run
+	@echo "Development environment ready! Access the API at http://localhost:8000"
+
+.PHONY: pre-commit
+pre-commit:       ## Install and setup pre-commit hooks.
+	@echo "Setting up pre-commit hooks..."
+	@$(ENV_PREFIX)pre-commit install
+	@$(ENV_PREFIX)pre-commit autoupdate
+
+.PHONY: db-create
+db-create:        ## Create the database.
+	@echo "Creating database..."
+	@createdb fast_api_template || true
+
+.PHONY: db-migrate
+db-migrate:       ## Run database migrations.
+	@echo "Running database migrations..."
+	@$(ENV_PREFIX)sqlmodel migrate
+
+.PHONY: db-reset
+db-reset:         ## Reset the database (drop and recreate).
+	@echo "Resetting database..."
+	@dropdb fast_api_template || true
+	@make db-create
+	@make db-migrate
 
 .PHONY: show
 show:             ## Show the current environment.
@@ -29,16 +67,23 @@ install:          ## Install the project in dev mode.
 	$(ENV_PREFIX)uv pip install -e .[dev,lint,test,docs]
 
 .PHONY: fmt
-fmt:              ## Format code using black & isort.
-	$(ENV_PREFIX)isort fast_api_template/
-	$(ENV_PREFIX)black fast_api_template/
-	$(ENV_PREFIX)black tests/
+fmt:              ## Format code using ruff.
+	$(ENV_PREFIX)ruff format fast_api_template/
+	$(ENV_PREFIX)ruff format tests/
 
 .PHONY: lint
-lint:             ## Run pep8, black, mypy linters.
+lint:             ## Run ruff and mypy linters.
 	$(ENV_PREFIX)ruff check fast_api_template/
-	$(ENV_PREFIX)black --check fast_api_template/
-	$(ENV_PREFIX)black --check tests/
+	$(ENV_PREFIX)ruff check tests/
+	$(ENV_PREFIX)mypy --ignore-missing-imports fast_api_template/
+
+.PHONY: fix-lint
+fix-lint:         ## Fix linting issues using ruff.
+	$(ENV_PREFIX)ruff check --fix fast_api_template/
+	$(ENV_PREFIX)ruff check --fix tests/
+
+.PHONY: type-check
+type-check:       ## Run type checker.
 	$(ENV_PREFIX)mypy --ignore-missing-imports fast_api_template/
 
 .PHONY: test

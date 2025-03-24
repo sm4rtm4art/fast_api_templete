@@ -27,58 +27,60 @@ _This template is a modernized fork of [rochacbruno/fastapi-project-template](ht
 - **GitHub Actions**: CI/CD pipeline that tests on all major platforms
 - **Developer Experience**: Streamlined workflow with makefile commands and pre-commit hooks
 
-## Installation
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.12+
-- UV package manager (installed automatically if missing)
+- Docker and Docker Compose (optional, for containerized development)
+- PostgreSQL (for local development)
 
-### From Source
+### Installation
 
 ```bash
 # Clone the repository
 git clone https://github.com/sm4rtm4art/FAST_API_TEMPLATE fast_api_template
 cd fast_api_template
 
-# Install with UV (automatically installs UV if not present)
-make install
+# Complete setup (recommended for new developers)
+make setup
+
+# Or set up development environment with Docker
+make setup-dev
 ```
 
-### Development Environment
+### Development Commands
 
 ```bash
-# Activate the virtual environment
-source .venv/bin/activate
+# Show all available commands
+make help
 
-# Run the development server
-uvicorn fast_api_template.app:app --reload
-```
+# Format code
+make fmt
 
-## CLI
+# Check code quality
+make lint
+make fix-lint  # Automatically fix linting issues
+make type-check  # Run type checker
 
-```bash
-# View available commands
-fast_api_template --help
+# Run tests
+make test
+make watch  # Run tests on file changes
 
-# Create a superuser (do this first!)
-fast_api_template create-user admin admin --superuser
+# Database operations
+make db-create    # Create database
+make db-migrate   # Run migrations
+make db-reset     # Reset database
 
-# Run the API server
-fast_api_template run --port 8080
+# Docker commands
+make docker-build     # Build development images
+make docker-run       # Start development environment
+make docker-stop      # Stop development environment
+make docker-logs      # View application logs
+make docker-ps        # List running containers
 
-# Open interactive shell
-fast_api_template shell
-```
-
-## Docker
-
-```bash
-# Build and run with Docker Compose (development)
-docker-compose -f docker-compose-dev.yaml up
-
-# Build and run with Docker Compose (production)
-docker-compose up
+# Documentation
+make docs             # Build and view documentation
 ```
 
 ## Project Structure
@@ -105,6 +107,42 @@ docker-compose up
 
 ## Development
 
+### Environment Setup
+
+The project provides several setup options:
+
+1. **Complete Setup** (recommended for new developers):
+
+   ```bash
+   make setup
+   ```
+
+   This will:
+
+   - Install all dependencies
+   - Set up pre-commit hooks
+   - Create the database
+   - Run migrations
+
+2. **Docker Development Setup**:
+
+   ```bash
+   make setup-dev
+   ```
+
+   This will:
+
+   - Build Docker images
+   - Start the development environment
+
+3. **Individual Setup Steps**:
+   ```bash
+   make install      # Install dependencies
+   make pre-commit   # Set up pre-commit hooks
+   make db-create    # Create database
+   make db-migrate   # Run migrations
+   ```
+
 ### Code Quality Tools
 
 ```bash
@@ -113,12 +151,12 @@ make fmt
 
 # Check code quality
 make lint
+make fix-lint  # Automatically fix issues
+make type-check  # Run type checker
 
 # Run tests
 make test
-
-# Run pre-commit hooks on all files
-pre-commit run --all-files
+make watch  # Run tests on file changes
 ```
 
 ### Configuration
