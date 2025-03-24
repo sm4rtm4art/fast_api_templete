@@ -62,30 +62,55 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           uv pip install ruff mypy
+        shell: bash
 
       - name: Fix code with Ruff
         run: |
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           # Run all fixable rules at once
           ruff check --fix fast_api_template
+        shell: bash
 
       - name: Check code with Ruff
         run: |
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           # Verify all issues are resolved
           ruff check --output-format=github fast_api_template
+        shell: bash
 
       - name: Check formatting
         run: |
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           ruff format --check --line-length 120 fast_api_template tests
+        shell: bash
 
       - name: Type check with mypy
         run: |
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           mypy --ignore-missing-imports fast_api_template
+        shell: bash
 
   security:
     needs: prepare
@@ -106,13 +131,23 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           uv pip install bandit safety
+        shell: bash
 
       - name: Run bandit
         run: |
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           bandit -r fast_api_template -x fast_api_template/tests
+        shell: bash
 
       - name: Run Safety vulnerability scanner
         uses: pyupio/safety-action@v1
@@ -147,13 +182,23 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           uv pip install -e ".[test]"
+        shell: bash
 
       - name: Test with pytest
         run: |
-          source .venv/bin/activate
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            .\.venv\Scripts\activate
+          else
+            source .venv/bin/activate
+          fi
           python -m pytest -v --cov=fast_api_template --cov-report=xml tests/
+        shell: bash
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
