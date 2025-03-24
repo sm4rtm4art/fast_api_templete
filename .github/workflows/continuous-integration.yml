@@ -59,58 +59,81 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           uv venv
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          source .venv/bin/activate
           uv pip install ruff mypy
         shell: bash
 
-      - name: Fix code with Ruff
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          uv venv
+          .\.venv\Scripts\Activate.ps1
+          uv pip install ruff mypy
+        shell: pwsh
+
+      - name: Fix code with Ruff (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source .venv/bin/activate
           # Run all fixable rules at once
           ruff check --fix fast_api_template
         shell: bash
 
-      - name: Check code with Ruff
+      - name: Fix code with Ruff (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          .\.venv\Scripts\Activate.ps1
+          # Run all fixable rules at once
+          ruff check --fix fast_api_template
+        shell: pwsh
+
+      - name: Check code with Ruff (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source .venv/bin/activate
           # Verify all issues are resolved
           ruff check --output-format=github fast_api_template
         shell: bash
 
-      - name: Check formatting
+      - name: Check code with Ruff (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          .\.venv\Scripts\Activate.ps1
+          # Verify all issues are resolved
+          ruff check --output-format=github fast_api_template
+        shell: pwsh
+
+      - name: Check formatting (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source .venv/bin/activate
           ruff format --check --line-length 120 fast_api_template tests
         shell: bash
 
-      - name: Type check with mypy
+      - name: Check formatting (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          .\.venv\Scripts\Activate.ps1
+          ruff format --check --line-length 120 fast_api_template tests
+        shell: pwsh
+
+      - name: Type check with mypy (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source .venv/bin/activate
           mypy --ignore-missing-imports fast_api_template
         shell: bash
+
+      - name: Type check with mypy (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          mypy --ignore-missing-imports fast_api_template
+        shell: pwsh
 
   security:
     needs: prepare
@@ -128,26 +151,35 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           uv venv
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          source .venv/bin/activate
           uv pip install bandit safety
         shell: bash
 
-      - name: Run bandit
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          uv venv
+          .\.venv\Scripts\Activate.ps1
+          uv pip install bandit safety
+        shell: pwsh
+
+      - name: Run bandit (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source .venv/bin/activate
           bandit -r fast_api_template -x fast_api_template/tests
         shell: bash
+
+      - name: Run bandit (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          bandit -r fast_api_template -x fast_api_template/tests
+        shell: pwsh
 
       - name: Run Safety vulnerability scanner
         uses: pyupio/safety-action@v1
@@ -179,26 +211,35 @@ jobs:
           enable-cache: true
 
       # Install test dependencies directly from PyPI
-      - name: Install dependencies
+      - name: Install dependencies (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           uv venv
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          source .venv/bin/activate
           uv pip install -e ".[test]"
         shell: bash
 
-      - name: Test with pytest
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            .\.venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
+          uv venv
+          .\.venv\Scripts\Activate.ps1
+          uv pip install -e ".[test]"
+        shell: pwsh
+
+      - name: Test with pytest (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source .venv/bin/activate
           python -m pytest -v --cov=fast_api_template --cov-report=xml tests/
         shell: bash
+
+      - name: Test with pytest (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          python -m pytest -v --cov=fast_api_template --cov-report=xml tests/
+        shell: pwsh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
