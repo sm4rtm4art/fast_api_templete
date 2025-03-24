@@ -1,15 +1,17 @@
+"""FastAPI application definition."""
+
 import os
 import time
-from typing import Any
+from typing import Any, List
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .auth.auth import User, get_current_active_user
 from .config import settings
 from .db import create_db_and_tables
 from .routes import api_router
-from .routes.security import router as security_router
-from .security import get_current_active_user
+from .routes.auth import router as auth_router
 
 
 def read(*paths: str, **kwargs: Any) -> Any:
@@ -30,37 +32,44 @@ fast_api_template API helps you do awesome stuff. 🚀
 """
 
 app = FastAPI(
-    title=settings.server.name,
-    description=settings.server.description,
-    version=settings.server.version,
-    docs_url=settings.server.docs_url,
+    title=settings.SERVER_NAME,
+    description=settings.SERVER_DESCRIPTION,
+    version=settings.SERVER_VERSION,
+    docs_url=settings.SERVER_DOCS_URL,
 )
 
-if settings.server.cors_origins:
-    # Check if cors_origins is a string or list
-    origins = settings.server.cors_origins
-    if isinstance(origins, str):
-        # Split string by comma and strip whitespace
-        allow_origins = [origin.strip() for origin in origins.split(",")]
-    else:
-        # Use the list as is
-        allow_origins = origins
+# Handle CORS origins
+origins: List[str] = []
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allow_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+
+def parse_cors_origin(value: Any) -> List[str]:
+    """Parse CORS origin value into a list of strings."""
+    if isinstance(value, str):
+        return [origin.strip() for origin in value.split(",") if origin.strip()]
+    if isinstance(value, (list, tuple)):
+        return [str(origin).strip() for origin in value if str(origin).strip()]
+    origin = str(value).strip()
+    return [origin] if origin else []
+
+
+if settings.SERVER_CORS_ORIGINS:
+    origins = parse_cors_origin(settings.SERVER_CORS_ORIGINS)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(api_router)
-app.include_router(security_router, tags=["authentication"])
+app.include_router(auth_router)
 
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    """Initialize the database and create tables on startup."""
+    """Create database tables on startup."""
     create_db_and_tables()
 
 
@@ -68,7 +77,7 @@ async def on_startup() -> None:
 async def health_check() -> dict[str, Any]:
     """Health check endpoint."""
     return {
-        "status": "healthy",
+        "status": "ok",
         "timestamp": time.time(),
     }
 
@@ -77,11 +86,12 @@ async def health_check() -> dict[str, Any]:
 async def root() -> dict[str, Any]:
     """Root endpoint."""
     return {
-        "message": "Hello World!",
+        "message": "Welcome to fast_api_template API",
+        "docs": settings.SERVER_DOCS_URL,
     }
 
 
 @app.get("/me")
-async def read_users_me(current_user: Any = Depends(get_current_active_user)) -> Any:
-    """Returns information about the current authenticated user."""
+async def read_users_me(current_user: User = Depends(get_current_active_user)) -> User:
+    """Get current user."""
     return current_user

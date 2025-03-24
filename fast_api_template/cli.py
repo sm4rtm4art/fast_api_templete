@@ -1,68 +1,63 @@
-from typing import Any
+"""Command line interface module."""
 
 import typer
-import uvicorn
-from sqlmodel import Session, select
+from rich.console import Console
+from rich.traceback import install as install_rich_traceback
 
-from .app import app
-from .config import settings
-from .db import create_db_and_tables, engine
-from .models.content import Content
-from .security import User, get_password_hash
+from .auth_core import User
+from .db import create_db_and_tables, get_session
+from .models import UserCreate
 
-cli = typer.Typer(name="fast_api_template API")
+# Install rich traceback handler
+install_rich_traceback()
+
+# Create console for rich output
+console = Console()
+
+# Create typer app
+app = typer.Typer()
 
 
-@cli.command()
-def run(
-    port: int = settings.server.port,
-    host: str = settings.server.host,
-    log_level: str = settings.server.log_level,
-    reload: bool = settings.server.reload,
-) -> None:  # pragma: no cover
-    """Run the API server."""
-    uvicorn.run(
-        "fast_api_template.app:app",
-        host=host,
-        port=port,
-        log_level=log_level,
-        reload=reload,
+@app.command()
+def shell() -> None:
+    """Start an IPython shell with the application context."""
+    try:
+        from IPython import embed
+
+        embed(colors="neutral")
+    except ImportError:
+        msg = "IPython is not installed. Please install it with: pip install ipython"
+        console.print(f"[red]{msg}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def create_user(
+    username: str,
+    email: str,
+    password: str,
+    is_admin: bool = False,
+    is_active: bool = True,
+    is_superuser: bool = False,
+) -> None:
+    """Create a new user."""
+    create_db_and_tables()
+
+    user_in = UserCreate(
+        username=username,
+        email=email,
+        password=password,
+        is_admin=is_admin,
+        is_active=is_active,
+        is_superuser=is_superuser,
     )
 
-
-@cli.command()
-def create_user(username: str, password: str, superuser: bool = False) -> Any:
-    """Create user"""
-    create_db_and_tables()
-    with Session(engine) as session:
-        user = User(username=username, hashed_password=get_password_hash(password), superuser=superuser)
-        session.add(user)
+    with get_session() as session:
+        user = User.create(session, user_in)
         session.commit()
-        session.refresh(user)
-        typer.echo(f"created {username} user")
-        return user
+
+    console.print(f"[green]Created user:[/green] {user}")
 
 
-@cli.command()
-def shell() -> None:  # pragma: no cover
-    """Opens an interactive shell with objects auto imported"""
-    _vars = {
-        "app": app,
-        "settings": settings,
-        "User": User,
-        "engine": engine,
-        "cli": cli,
-        "create_user": create_user,
-        "select": select,
-        "session": Session(engine),
-        "Content": Content,
-    }
-    typer.echo(f"Auto imports: {list(_vars.keys())}")
-    try:
-        from IPython import start_ipython
-
-        start_ipython(argv=[], user_ns=_vars)
-    except ImportError:
-        import code
-
-        code.InteractiveConsole(_vars).interact()
+if __name__ == "__main__":
+    app()

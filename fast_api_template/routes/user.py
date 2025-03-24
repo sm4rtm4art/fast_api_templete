@@ -3,30 +3,38 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from ..db import ActiveSession
-from ..security import (
-    AdminUser,
-    AuthenticatedFreshUser,
-    AuthenticatedUser,
+from ..auth_core import (
     User,
     UserCreate,
     UserPasswordPatch,
     UserResponse,
+    get_current_active_user,
+    get_current_admin_user,
+    get_current_fresh_user,
     get_current_user,
     get_password_hash,
 )
+from ..db import ActiveSession
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[UserResponse], dependencies=[AdminUser])
+@router.get(
+    "/",
+    response_model=list[UserResponse],
+    dependencies=[Depends(get_current_admin_user)],
+)
 async def list_users(*, session: Session = ActiveSession) -> Any:
     """List all users."""
     users = session.exec(select(User)).all()
     return users
 
 
-@router.post("/", response_model=UserResponse, dependencies=[AdminUser])
+@router.post(
+    "/",
+    response_model=UserResponse,
+    dependencies=[Depends(get_current_admin_user)],
+)
 async def create_user(*, session: Session = ActiveSession, user: UserCreate) -> Any:
     """Create a new user."""
     # verify user with username doesn't already exist
@@ -52,7 +60,7 @@ async def create_user(*, session: Session = ActiveSession, user: UserCreate) -> 
 @router.patch(
     "/{user_id}/password/",
     response_model=UserResponse,
-    dependencies=[AuthenticatedFreshUser],
+    dependencies=[Depends(get_current_fresh_user)],
 )
 async def update_user_password(
     *,
@@ -86,9 +94,13 @@ async def update_user_password(
 @router.get(
     "/{user_id_or_username}/",
     response_model=UserResponse,
-    dependencies=[AuthenticatedUser],
+    dependencies=[Depends(get_current_active_user)],
 )
-async def get_user_by_id_or_username(*, session: Session = ActiveSession, user_id_or_username: str | int) -> Any:
+async def get_user_by_id_or_username(
+    *,
+    session: Session = ActiveSession,
+    user_id_or_username: str | int,
+) -> Any:
     """Get a user by ID or username."""
     if isinstance(user_id_or_username, int) or user_id_or_username.isdigit():
         user = session.get(User, int(user_id_or_username))
@@ -101,9 +113,15 @@ async def get_user_by_id_or_username(*, session: Session = ActiveSession, user_i
     return user
 
 
-@router.delete("/{user_id}/", dependencies=[AdminUser])
+@router.delete(
+    "/{user_id}/",
+    dependencies=[Depends(get_current_admin_user)],
+)
 def delete_user(
-    *, session: Session = ActiveSession, user_id: int, current_user: User = Depends(get_current_user)
+    *,
+    session: Session = ActiveSession,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """Delete a user."""
     # verify the user exists

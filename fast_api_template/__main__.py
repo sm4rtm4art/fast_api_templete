@@ -1,8 +1,8 @@
 # pragma: no cover
 
-from .cli import cli
+from .cli import app
 
-main = cli
+main = app
 
 if __name__ == "__main__":  # pragma: no cover
     main()

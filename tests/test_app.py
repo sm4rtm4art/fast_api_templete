@@ -1,15 +1,19 @@
-def test_using_testing_db(settings):
+from dynaconf import Dynaconf
+from fastapi.testclient import TestClient
+
+
+def test_using_testing_db(settings: Dynaconf) -> None:
     assert settings.db.uri == "sqlite:///testing.db"
 
 
-def test_index(api_client):
+def test_index(api_client: TestClient) -> None:
     response = api_client.get("/")
     assert response.status_code == 200
     result = response.json()
     assert result["message"] == "Hello World!"
 
 
-def test_cors_header(api_client):
+def test_cors_header(api_client: TestClient) -> None:
     valid_origin = ["http://localhost:3000", "http://localhost:4200"]
     invalid_origin = ["http://localhost:3200", "http://localhost:4000"]
 

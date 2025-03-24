@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fast_api_template"
+name = "fast-api-template"
 version = "0.1.0"
-description = "Modern FastAPI template with UV package manager"
+description = "A modern FastAPI project template"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
 authors = [
-    { name = "sm4rtm4art", email = "martin@example.com" }
+    { name = "Your Name", email = "your.email@example.com" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -20,49 +20,63 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.23.2",
-    "sqlmodel>=0.0.11",
-    "typer>=0.9.0",
-    "dynaconf>=3.2.3",
-    "jinja2>=3.1.2",
-    "python-jose[cryptography]>=3.3.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "sqlmodel>=0.0.16",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.1.0",
+    "python-jose[cryptography]>=3.4.0",
     "passlib[bcrypt]>=1.7.4",
-    "python-multipart>=0.0.6",
-    "psycopg2-binary>=2.9.9",
-    "httpx>=0.25.1",
-    "pydantic>=2.4.2",
-    "structlog>=23.2.0",
+    "python-multipart>=0.0.9",
+    "typer>=0.9.0",
+    "rich>=13.7.0",
+    "dynaconf>=3.2.4",
+    "boto3-stubs[s3,sqs]>=1.37.18",
+    "mypy-boto3-s3>=1.37.0",
+    "mypy-boto3-sqs>=1.37.0",
+    "types-redis>=4.6.0.20241004",
+    "ecdsa>=0.19.1",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.4.3",
+test = [
+    "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
     "pytest-xdist>=3.3.1",
     "pytest-mock>=3.12.0",
+    "httpx>=0.26.0",
     "coverage>=7.3.2",
-    "pre-commit>=3.5.0",
-    "types-python-jose>=3.4.0",
-    "types-passlib>=1.7.7",
-    "types-requests>=2.31.0",
 ]
 lint = [
-    "ruff>=0.1.8",
-    "mypy>=1.6.1",
+    "mypy==1.15.0",
+    "vulture==2.14",
+    "ruff==0.11.2",
+    "types-python-jose==3.4.0.20250224",
+    "types-passlib==1.7.7.20250322",
+    "types-requests==2.32.0.20250306",
+    "types-redis==4.6.0.20241004",
+    "types-boto3==1.37.18",
+    "types-typer==0.9.0.20240218",
+    "types-rich==13.7.0.20240218",
+    "types-pydantic==2.6.0.20240218",
+    "types-sqlmodel==0.0.16.20240218",
+]
+security = [
+    "bandit>=1.7.5",
+    "safety>=2.3.5",
+    "tomli>=2.0.1",
+]
+dev = [
+    "fast-api-template[test]",
+    "fast-api-template[lint]",
+    "fast-api-template[security]",
+    "pre-commit>=3.5.0",
 ]
 docs = [
     "mkdocs>=1.5.3",
     "mkdocs-material>=9.4.8",
     "gitchangelog>=3.0.4",
-]
-test = [
-    "pytest>=7.4.3",
-    "pytest-cov>=4.1.0",
-    "pytest-xdist>=3.3.1",
-    "pytest-mock>=3.12.0",
-    "pytest-picked>=0.4.6",
-    "coverage>=7.3.2",
 ]
 notebook = [
     "jupyterlab>=4.0.7",
@@ -71,10 +85,27 @@ notebook = [
     "seaborn>=0.13.0",
     "ipywidgets>=8.1.1",
 ]
-security = [
-    "bandit>=1.7.5",
-    "safety>=2.3.5",
-    "tomli>=2.0.1",
+aws = [
+    "boto3==1.37.18",
+    "botocore==1.37.18",
+    "redis==5.2.1",
+]
+gcp = [
+    "google-cloud-storage==3.1.0",
+    "google-cloud-pubsub==2.29.0",
+    "redis==5.2.1",
+]
+azure = [
+    "azure-storage-blob==12.25.0",
+    "azure-servicebus==7.14.1",
+    "azure-identity==1.21.0",
+    "azure-mgmt-redis==14.5.0",
+    "redis==5.2.1",
+]
+cloud = [
+    "fast-api-template[aws]",
+    "fast-api-template[gcp]",
+    "fast-api-template[azure]",
 ]
 
 [project.scripts]
@@ -88,58 +119,55 @@ fast_api_template = "fast_api_template.__main__:main"
 packages = ["fast_api_template"]
 
 [tool.ruff]
+# Maximum line length for code
 line-length = 120
+# Target Python version for compatibility checks
 target-version = "py312"
-
-[tool.ruff.lint]
-select = ["E", "F", "B", "I", "N", "UP", "SIM", "TCH"]
-ignore = [
-    # Function call in argument defaults - common in FastAPI with Depends
-    "B008",
-    # Allow if-else blocks instead of forcing ternary operators
-    "SIM108",
+# Selected rules for code quality checks
+select = [
+    "E",   # pycodestyle errors (basic style guide enforcement)
+    "F",   # pyflakes (basic syntax and undefined names)
+    "B",   # flake8-bugbear (likely bugs and design problems)
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming (naming conventions)
+    "UP",  # pyupgrade (upgrade syntax for newer Python versions)
+    "PL",  # pylint (general code analysis)
+    "RUF", # ruff-specific rules
 ]
+# No specific rules to ignore
+ignore = []
 
-# Import sorting configuration
-[tool.ruff.lint.isort]
-case-sensitive = true
-combine-as-imports = true
-section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
-
-# Quotes configuration
-[tool.ruff.lint.flake8-quotes]
-docstring-quotes = "double"
-inline-quotes = "double"
-
-# Formatting configuration for ruff-format
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "auto"
-skip-magic-trailing-comma = false  # Trailing commas improve diff quality
+[tool.ruff.isort]
+# Modules that should be considered first-party (our own code)
+known-first-party = ["fast_api_template"]
 
 [tool.mypy]
 python_version = "3.12"
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = false  # Temporarily disable to allow commits
-warn_unreachable = true
+warn_return_any = false
+warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
-disallow_untyped_decorators = false  # Temporarily disable to allow commits
-disable_error_code = ["misc", "no-any-return", "no-untyped-def"]  # Temporarily disable to allow commits
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+warn_no_return = true
+warn_unreachable = true
 
-[[tool.mypy.overrides]]
-module = ["dynaconf.*", "passlib.*", "jose.*", "fastapi.*", "sqlmodel.*", "tomli"]
+# Ignore missing imports for third-party libraries
 ignore_missing_imports = true
+
+# Per-module options
+[[tool.mypy.overrides]]
+module = ["sqlmodel", "sqlmodel.*", "fastapi.*", "pytest.*"]
+ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+disallow_untyped_decorators = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = "test_*.py"
-addopts = "--cov=fast_api_template --cov-report=term-missing --cov-report=xml --cov-report=html -v"
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"

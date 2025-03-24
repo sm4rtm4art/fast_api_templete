@@ -1,26 +1,35 @@
+[default]
+server.name = "FastAPI Template"
+server.description = "A FastAPI template with authentication and cloud services"
+server.version = "0.1.0"
+server.docs_url = "/docs"
+server.port = 8000
+server.host = "0.0.0.0"
+server.log_level = "info"
+server.reload = false
+server.cors_origins = ["*"]
+
+database.echo = false
+database.url = "sqlite:///./test.db"
+
+jwt.secret_key = "your-secret-key"
+jwt.algorithm = "HS256"
+jwt.access_token_expire_minutes = 30
+
+cloud.provider = "aws"
+
 [development]
-dynaconf_merge = true
+server.log_level = "debug"
+server.reload = true
+server.cors_origins = ["http://localhost:3000"]
 
-[development.db]
-echo = true
-
-[development.server]
-log_level = "debug"
-reload = true
-cors_origins = ["http://localhost:3000", "http://localhost:4200"]
+database.echo = true
 
 [production]
-dynaconf_merge = true
-
-[production.db]
-echo = false
-
-[production.server]
-log_level = "error"
-reload = false
+server.log_level = "error"
+server.reload = false
+server.cors_origins = ["https://yourdomain.com"]
 
 [testing]
-dynaconf_merge = true
-
-[testing.server]
-cors_origins = ["http://localhost:3000", "http://localhost:4200"]
+server.cors_origins = ["http://localhost:3000"]
+database.url = "sqlite:///./test.db"

@@ -1,12 +1,11 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends
-from fastapi.exceptions import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from ..auth_core import User, get_current_active_user, get_current_user
 from ..db import ActiveSession
 from ..models.content import Content, ContentIncoming, ContentResponse
-from ..security import AuthenticatedUser, User, get_current_user
 
 router = APIRouter()
 
@@ -14,10 +13,7 @@ router = APIRouter()
 @router.get("/", response_model=list[ContentResponse])
 async def list_contents(*, session: Session = ActiveSession) -> Any:
     contents = session.exec(select(Content)).all()
-    for content in contents:
-        if isinstance(content.tags, str):
-            content.tags = content.tags.split(",") if content.tags else []
-    return contents
+    return [ContentResponse.model_validate(content) for content in contents]
 
 
 @router.get("/{id_or_slug}/", response_model=ContentResponse)
@@ -32,13 +28,14 @@ async def query_content(*, id_or_slug: str | int, session: Session = ActiveSessi
     if not content:
         raise HTTPException(status_code=404, detail="Content not found")
 
-    if isinstance(content.tags, str):
-        content.tags = content.tags.split(",") if content.tags else []
-
-    return content
+    return ContentResponse.model_validate(content)
 
 
-@router.post("/", response_model=ContentResponse, dependencies=[AuthenticatedUser])
+@router.post(
+    "/",
+    response_model=ContentResponse,
+    dependencies=[Depends(get_current_active_user)],
+)
 async def create_content(
     *, session: Session = ActiveSession, content: ContentIncoming, current_user: User = Depends(get_current_user)
 ) -> Any:
@@ -51,17 +48,13 @@ async def create_content(
     session.commit()
     session.refresh(new_content)
 
-    # Convert tags to list for response
-    if isinstance(new_content.tags, str):
-        new_content.tags = new_content.tags.split(",") if new_content.tags else []
-
-    return new_content
+    return ContentResponse.model_validate(new_content)
 
 
 @router.patch(
     "/{content_id}/",
     response_model=ContentResponse,
-    dependencies=[AuthenticatedUser],
+    dependencies=[Depends(get_current_active_user)],
 )
 async def update_content(
     *,
@@ -88,14 +81,13 @@ async def update_content(
     session.commit()
     session.refresh(content)
 
-    # Convert tags to list for response
-    if isinstance(content.tags, str):
-        content.tags = content.tags.split(",") if content.tags else []
-
-    return content
+    return ContentResponse.model_validate(content)
 
 
-@router.delete("/{content_id}/", dependencies=[AuthenticatedUser])
+@router.delete(
+    "/{content_id}/",
+    dependencies=[Depends(get_current_active_user)],
+)
 def delete_content(
     *, session: Session = ActiveSession, content_id: int, current_user: User = Depends(get_current_user)
 ) -> Any:

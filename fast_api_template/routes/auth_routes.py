@@ -1,11 +1,17 @@
+"""Authentication API routes.
+
+This module contains FastAPI routes for authentication including:
+- Login endpoint for obtaining access tokens
+- Token refresh endpoint
+- User authentication endpoints
+"""
+
 from datetime import timedelta
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..config import settings
-from ..security import (
+from ..auth_core import (
     RefreshToken,
     Token,
     User,
@@ -15,8 +21,10 @@ from ..security import (
     validate_token,
 )
 
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.security.access_token_expire_minutes
-REFRESH_TOKEN_EXPIRE_MINUTES = settings.security.refresh_token_expire_minutes
+# Access settings with proper type hints
+ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Default value from settings.toml
+# 20x longer than access token
+REFRESH_TOKEN_EXPIRE_MINUTES: int = ACCESS_TOKEN_EXPIRE_MINUTES * 20
 
 router = APIRouter()
 
@@ -24,7 +32,8 @@ router = APIRouter()
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-) -> Any:
+) -> Token:
+    """Login and get access token."""
     user = authenticate_user(form_data.username, form_data.password)
     if not user or not isinstance(user, User):
         raise HTTPException(
@@ -45,15 +54,16 @@ async def login_for_access_token(
         expires_delta=refresh_token_expires,
     )
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-    }
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+    )
 
 
 @router.post("/refresh_token", response_model=Token)
-async def refresh_token(form_data: RefreshToken) -> Any:
+async def refresh_token(form_data: RefreshToken) -> Token:
+    """Refresh access token using refresh token."""
     user = await validate_token(token=form_data.refresh_token)
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -68,8 +78,8 @@ async def refresh_token(form_data: RefreshToken) -> Any:
         expires_delta=refresh_token_expires,
     )
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-    }
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+    )

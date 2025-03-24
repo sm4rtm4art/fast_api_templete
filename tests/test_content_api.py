@@ -1,4 +1,7 @@
-def test_content_create(api_client_authenticated):
+from fastapi.testclient import TestClient
+
+
+def test_content_create(api_client_authenticated: TestClient) -> None:
     response = api_client_authenticated.post(
         "/content/",
         json={
@@ -13,7 +16,7 @@ def test_content_create(api_client_authenticated):
     assert result["slug"] == "hello-test"
 
 
-def test_content_list(api_client_authenticated):
+def test_content_list(api_client_authenticated: TestClient) -> None:
     response = api_client_authenticated.get("/content/")
     assert response.status_code == 200
     result = response.json()

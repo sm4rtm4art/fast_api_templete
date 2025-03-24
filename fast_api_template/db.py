@@ -1,16 +1,28 @@
+"""Database configuration and session management."""
+
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Optional
 
 from fastapi import Depends
-from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy.engine import Engine
+from sqlmodel import Session, SQLModel, create_engine
 
-from .config import settings
+from .config.settings import settings
 
-DATABASE_URL = settings.db.uri
-engine = create_engine(DATABASE_URL, echo=settings.db.echo)
+# Access settings with proper type hints
+DATABASE_URL: str = settings.database.url
+DB_ECHO: bool = settings.database.echo
+DB_CONNECT_ARGS: dict = {"check_same_thread": False}
+
+engine: Engine = create_engine(
+    DATABASE_URL,
+    echo=DB_ECHO,
+    connect_args=DB_CONNECT_ARGS,
+)
 
 
-def create_db_and_tables(custom_engine=None) -> None:
+def create_db_and_tables(custom_engine: Optional[Engine] = None) -> None:
     """Create database tables from SQLModel metadata.
 
     Args:
@@ -22,6 +34,11 @@ def create_db_and_tables(custom_engine=None) -> None:
 
 @contextmanager
 def get_session() -> Generator[Session, None, None]:
+    """Get a database session.
+
+    Yields:
+        Session: A database session
+    """
     session = Session(engine)
     try:
         yield session
@@ -30,6 +47,11 @@ def get_session() -> Generator[Session, None, None]:
 
 
 def get_db() -> Generator[Session, None, None]:
+    """Get a database session for FastAPI dependency injection.
+
+    Yields:
+        Session: A database session
+    """
     with get_session() as session:
         yield session
 
