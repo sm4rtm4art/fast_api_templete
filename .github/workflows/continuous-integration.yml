@@ -147,10 +147,12 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
-          uv pip install pytest pytest-cov pytest-xdist pytest-mock pytest-picked coverage fastapi uvicorn sqlmodel typer dynaconf jinja2 python-jose[cryptography] passlib[bcrypt] python-multipart psycopg2-binary httpx pydantic structlog
+          source .venv/bin/activate
+          uv pip install -e ".[test]"
 
       - name: Test with pytest
         run: |
+          source .venv/bin/activate
           python -m pytest -v --cov=fast_api_template --cov-report=xml tests/
 
       - name: Upload coverage to Codecov
