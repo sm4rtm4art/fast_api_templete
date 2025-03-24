@@ -28,7 +28,6 @@ import re
 import sys
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any
 
 
 def add_types_to_file(file_path: str) -> None:

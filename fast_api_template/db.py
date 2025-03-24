@@ -1,6 +1,5 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
 
 from fastapi import Depends
 from sqlmodel import SQLModel, Session, create_engine

@@ -1,3 +1,4 @@
+import typing
 from collections.abc import Callable, Generator
 from datetime import datetime, timedelta
 from typing import Any, cast
@@ -9,10 +10,11 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel, Session, select
 
-from fast_api_template.models.content import Content
-
 from .config import settings
 from .db import engine
+
+if typing.TYPE_CHECKING:
+    from fast_api_template.models.content import Content
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -80,7 +82,10 @@ class User(SQLModel, table=True):  # type: ignore
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    contents: list["Content"] = Relationship(back_populates="user")
+    if typing.TYPE_CHECKING:
+        contents: list["Content"] = Relationship(back_populates="user")
+    else:
+        contents: list[Any] = Relationship(back_populates="user")
 
 
 class UserCreate(BaseModel):
@@ -170,12 +175,14 @@ def decode_token(token: str) -> dict[str, Any]:
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = cast(str, payload.get("sub", ""))
+        username: str = cast("str", payload.get("sub", ""))
         if username == "":
             raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
+        # Remove unused assignment or comment what it's for
+        # token_data = TokenData(username=username)
+    except JWTError as err:
+        # Proper exception chaining
+        raise credentials_exception from err
 
     return payload
 
@@ -189,12 +196,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = cast(str, payload.get("sub", ""))
+        username: str = cast("str", payload.get("sub", ""))
         if username == "":
             raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
+        # Remove unused assignment or comment what it's for
+        # token_data = TokenData(username=username)
+    except JWTError as err:
+        # Proper exception chaining
+        raise credentials_exception from err
 
     with Session(engine) as session:
         statement = select(User).where(User.username == username)
@@ -231,12 +240,12 @@ def get_current_fresh_user(token: str = Depends(oauth2_scheme)) -> User:
                 detail="Token is not fresh. Please login again.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-    except JWTError:
+    except JWTError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from err
 
     return user
 

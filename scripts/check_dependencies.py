@@ -49,7 +49,7 @@ def extract_dependencies_from_pyproject():
         # Get optional dependencies
         optional_deps = []
         opt_deps_dict = deps.get("optional-dependencies", {})
-        for group, group_deps in opt_deps_dict.items():
+        for _group, group_deps in opt_deps_dict.items():
             optional_deps.extend(group_deps)
 
         # Combine all dependencies
