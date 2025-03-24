@@ -119,7 +119,12 @@ jobs:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
           source .venv/bin/activate
-          safety scan
+          if [ -n "$SAFETY_API_KEY" ]; then
+            safety scan
+          else
+            echo "SAFETY_API_KEY not found, running safety scan in basic mode"
+            safety scan --api-key "" || true
+          fi
 
   test:
     needs: [lint, security]

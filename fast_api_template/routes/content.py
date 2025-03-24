@@ -14,6 +14,9 @@ router = APIRouter()
 @router.get("/", response_model=list[ContentResponse])
 async def list_contents(*, session: Session = ActiveSession) -> Any:
     contents = session.exec(select(Content)).all()
+    for content in contents:
+        if isinstance(content.tags, str):
+            content.tags = content.tags.split(",") if content.tags else []
     return contents
 
 
@@ -28,26 +31,37 @@ async def query_content(*, id_or_slug: str | int, session: Session = ActiveSessi
     content = session.exec(query).first()
     if not content:
         raise HTTPException(status_code=404, detail="Content not found")
+
+    if isinstance(content.tags, str):
+        content.tags = content.tags.split(",") if content.tags else []
+
     return content
 
 
-@router.post("/", response_model=ContentResponse, dependencies=[Depends(AuthenticatedUser)])
+@router.post("/", response_model=ContentResponse, dependencies=[AuthenticatedUser])
 async def create_content(
     *, session: Session = ActiveSession, content: ContentIncoming, current_user: User = Depends(get_current_user)
 ) -> Any:
     # Set the ownership of the content to the current user
-    new_content = Content.from_orm(content)
+    new_content = Content.model_validate(content)
     new_content.user_id = current_user.id
+
+    # Save to DB
     session.add(new_content)
     session.commit()
     session.refresh(new_content)
+
+    # Convert tags to list for response
+    if isinstance(new_content.tags, str):
+        new_content.tags = new_content.tags.split(",") if new_content.tags else []
+
     return new_content
 
 
 @router.patch(
     "/{content_id}/",
     response_model=ContentResponse,
-    dependencies=[Depends(AuthenticatedUser)],
+    dependencies=[AuthenticatedUser],
 )
 async def update_content(
     *,
@@ -70,17 +84,22 @@ async def update_content(
     for key, value in content_data.items():
         setattr(content, key, value)
 
-    # Commit the session
     session.add(content)
     session.commit()
     session.refresh(content)
+
+    # Convert tags to list for response
+    if isinstance(content.tags, str):
+        content.tags = content.tags.split(",") if content.tags else []
+
     return content
 
 
-@router.delete("/{content_id}/", dependencies=[Depends(AuthenticatedUser)])
+@router.delete("/{content_id}/", dependencies=[AuthenticatedUser])
 def delete_content(
     *, session: Session = ActiveSession, content_id: int, current_user: User = Depends(get_current_user)
 ) -> Any:
+    # Query the content
     content = session.get(Content, content_id)
     if not content:
         raise HTTPException(status_code=404, detail="Content not found")
@@ -89,6 +108,7 @@ def delete_content(
     if content.user_id != current_user.id and not current_user.superuser:
         raise HTTPException(status_code=403, detail="You don't have permission to delete this content")
 
+    # Delete the content
     session.delete(content)
     session.commit()
-    return {"ok": True}
+    return {"status": "success", "message": f"Content {content_id} deleted"}

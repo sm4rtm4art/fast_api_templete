@@ -8,7 +8,7 @@ from .app import app
 from .config import settings
 from .db import create_db_and_tables, engine
 from .models.content import Content
-from .security import User
+from .security import User, get_password_hash
 
 cli = typer.Typer(name="fast_api_template API")
 
@@ -35,7 +35,7 @@ def create_user(username: str, password: str, superuser: bool = False) -> Any:
     """Create user"""
     create_db_and_tables()
     with Session(engine) as session:
-        user = User(username=username, password=password, superuser=superuser)
+        user = User(username=username, hashed_password=get_password_hash(password), superuser=superuser)
         session.add(user)
         session.commit()
         session.refresh(user)

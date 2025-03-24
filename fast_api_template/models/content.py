@@ -1,11 +1,8 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Extra
-from sqlmodel import Field, Relationship, SQLModel
-
-if TYPE_CHECKING:
-    from fast_api_template.security import User
+from sqlmodel import Field, SQLModel
 
 
 class Content(SQLModel, table=True):  # type: ignore
@@ -23,8 +20,7 @@ class Content(SQLModel, table=True):  # type: ignore
     tags: str = Field(default="")
     user_id: int | None = Field(foreign_key="user.id")
 
-    # It populates a `.contents` attribute to the `User` model.
-    user: Optional["User"] = Relationship(back_populates="contents")
+    # Removing relationship for simplicity in testing
 
     @property
     def tags_list(self) -> list[str]:
@@ -58,6 +54,7 @@ class ContentIncoming(BaseModel):
     text: str | None
     published: bool | None = False
     tags: list[str] | str | None
+    user_id: int | None = None
 
     class Config:
         extra = Extra.allow

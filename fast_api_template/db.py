@@ -6,12 +6,18 @@ from sqlmodel import SQLModel, Session, create_engine
 
 from .config import settings
 
-DATABASE_URL = settings.db.url
+DATABASE_URL = settings.db.uri
 engine = create_engine(DATABASE_URL, echo=settings.db.echo)
 
 
-def create_db_and_tables() -> None:
-    SQLModel.metadata.create_all(engine)
+def create_db_and_tables(custom_engine=None) -> None:
+    """Create database tables from SQLModel metadata.
+
+    Args:
+        custom_engine: Optional engine to use instead of the default
+    """
+    target_engine = custom_engine or engine
+    SQLModel.metadata.create_all(target_engine)
 
 
 @contextmanager
@@ -28,4 +34,4 @@ def get_db() -> Generator[Session, None, None]:
         yield session
 
 
-ActiveSession = Depends(get_session)
+ActiveSession = Depends(get_db)

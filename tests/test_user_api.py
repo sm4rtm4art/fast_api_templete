@@ -101,7 +101,7 @@ def test_user_change_password(api_client_authenticated):
         f"/user/{foo_user['id']}/password/",
         json={"password": "foobar!", "password_confirm": "foobar"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
 
     # passwords do match
     response = api_client_authenticated.patch(

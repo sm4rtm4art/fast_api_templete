@@ -12,6 +12,11 @@ port = 8000
 host = "127.0.0.1"
 log_level = "info"
 reload = false
+cors_origins = ""
+name = "FastAPI Template"
+description = "Modern FastAPI template with SQLModel and JWT authentication"
+version = "1.0.0"
+docs_url = "/docs"
 
 [default.db]
 uri = "@jinja sqlite:///{{ this.current_env | lower }}.db"
