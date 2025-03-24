@@ -114,17 +114,11 @@ jobs:
           source .venv/bin/activate
           bandit -r fast_api_template -x fast_api_template/tests
 
-      - name: Check dependencies with safety
-        env:
-          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
-        run: |
-          source .venv/bin/activate
-          if [ -n "$SAFETY_API_KEY" ]; then
-            safety scan --non-interactive --auto-org-link
-          else
-            echo "SAFETY_API_KEY not found, running safety scan in basic mode"
-            safety scan --api-key "" --non-interactive || true
-          fi
+      - name: Run Safety vulnerability scanner
+        uses: pyupio/safety-action@v1
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
+          args: --full-report
 
   test:
     needs: [lint, security]

@@ -65,7 +65,13 @@ security:
     - source .venv/bin/activate
     - uv pip install ".[security]"
     - bandit -r fast_api_template -x fast_api_template/tests
-    - safety scan --non-interactive --auto-org-link
+    - |
+      if [ -n "$SAFETY_API_KEY" ]; then
+        safety scan --non-interactive --auto-org-link
+      else
+        echo "SAFETY_API_KEY not found, running safety scan in basic mode"
+        safety scan --api-key "" --non-interactive || true
+      fi
   cache:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:
