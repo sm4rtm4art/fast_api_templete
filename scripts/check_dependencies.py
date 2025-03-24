@@ -84,7 +84,7 @@ def run_safety_check(dependencies):
 
     try:
         # Run safety check on the temporary requirements file
-        cmd = ["safety", "check", "--file", temp_path, "--json", "--non-interactive"]
+        cmd = ["safety", "check", "--file", temp_path, "--json", "--non-interactive", "--auto-org-link"]
 
         # Add ignores for common false positives
         ignores = ["62044", "51457"]
