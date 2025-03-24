@@ -12,9 +12,10 @@ services:
       - fast_api_template_DB__connect_args={}
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
+      - PORT=8000
     volumes:
-      - ./fast_api_template:/home/app/web/fast_api_template
-      - ./pyproject.toml:/home/app/web/pyproject.toml
+      - ./fast_api_template:/app/fast_api_template
+      - ./pyproject.toml:/app/pyproject.toml
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
