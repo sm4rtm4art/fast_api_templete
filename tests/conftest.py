@@ -1,7 +1,7 @@
 """Test configuration module."""
 
 import os
-from typing import Generator
+from typing import Any, Generator
 
 import pytest
 from fastapi import FastAPI
@@ -82,7 +82,7 @@ def setup_db() -> Generator[None, None, None]:
 
 @pytest.fixture(scope="function")
 def app() -> FastAPI:
-    """Get a fresh copy of the application for testing with dependencies overridden."""
+    """Get a fresh copy of the application for testing."""
     # Import the app module
     from fast_api_template import app as app_instance
     from fast_api_template.db import get_db
@@ -116,7 +116,8 @@ def api_client_authenticated(api_client: TestClient) -> TestClient:
         )
 
         # Check if authentication was successful
-        assert response.status_code == 200, f"Authentication failed: {response.text}"
+        auth_error_msg = f"Authentication failed: {response.text}"
+        assert response.status_code == 200, auth_error_msg
 
         # Set authorization header
         token = response.json()["access_token"]
@@ -136,6 +137,14 @@ def api_client_authenticated(api_client: TestClient) -> TestClient:
 def cli_client() -> CliRunner:
     """Create a CLI runner."""
     return CliRunner()
+
+
+@pytest.fixture(scope="function")
+def cli() -> Any:
+    """Create a CLI app."""
+    from fast_api_template.cli import app as cli_app
+
+    return cli_app
 
 
 @pytest.fixture
