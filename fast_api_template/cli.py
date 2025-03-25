@@ -25,10 +25,10 @@ def shell() -> None:
         from IPython import embed
 
         embed(colors="neutral")
-    except ImportError:
+    except ImportError as err:
         msg = "IPython is not installed. Please install it with: pip install ipython"
         console.print(f"[red]{msg}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from err
 
 
 @app.command()

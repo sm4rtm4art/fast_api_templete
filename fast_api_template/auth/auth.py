@@ -62,8 +62,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
             raise credentials_exception
         token_data = TokenData(username=username)
         return token_data
-    except JWTError:
-        raise credentials_exception
+    except JWTError as err:
+        raise credentials_exception from err
 
 
 async def get_current_active_user(current_user: TokenData = Depends(get_current_user)) -> User:
