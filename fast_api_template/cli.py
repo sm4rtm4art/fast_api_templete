@@ -53,7 +53,7 @@ def create_user(
     )
 
     with get_session() as session:
-        user = User.create(session, user_in)
+        user = User.create(user_in=user_in, session=session)
         session.commit()
 
     console.print(f"[green]Created user:[/green] {user}")

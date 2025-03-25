@@ -32,7 +32,7 @@ def create_user(username: str, password: str) -> None:
             is_active=True,
             is_superuser=True,
         )
-        User.create(session, user_in)
+        User.create(user_in=user_in, session=session)
         session.commit()
 
 

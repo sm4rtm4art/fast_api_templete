@@ -1,39 +1,58 @@
-"""Authentication API routes.
-
-This module contains FastAPI routes for authentication including:
-- Login endpoint for obtaining access tokens
-- Token refresh endpoint
-- User authentication endpoints
-"""
+"""Authentication routes module."""
 
 from datetime import timedelta
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session, select
 
-from ..auth_core import (
-    RefreshToken,
+from fast_api_template.auth_core import (
     Token,
     User,
     authenticate_user,
     create_access_token,
-    create_refresh_token,
-    validate_token,
+    get_current_user,
 )
-
-# Access settings with proper type hints
-ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Default value from settings.toml
-# 20x longer than access token
-REFRESH_TOKEN_EXPIRE_MINUTES: int = ACCESS_TOKEN_EXPIRE_MINUTES * 20
+from fast_api_template.config.settings import settings
+from fast_api_template.db import get_session
+from fast_api_template.models.user import UserCreate, UserResponse
 
 router = APIRouter()
 
 
-@router.post("/token", response_model=Token)
-async def login_for_access_token(
+@router.post("/register", response_model=UserResponse)
+async def register(
+    user_in: UserCreate,
+    session: Session = Depends(get_session),
+) -> Any:
+    """Register a new user."""
+    # verify user with username doesn't already exist
+    existing = session.exec(select(User).where(User.username == user_in.username)).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username already exists",
+        )
+
+    # verify user with email doesn't already exist
+    existing = session.exec(select(User).where(User.email == user_in.email)).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email already exists",
+        )
+
+    user = User.create(user_in=user_in, session=session)
+    return user.to_response()
+
+
+@router.post("/login", response_model=Token)
+async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-) -> Token:
-    """Login and get access token."""
+    session: Session = Depends(get_session),
+) -> Any:
+    """Login user and return access token."""
     user = authenticate_user(form_data.username, form_data.password)
     if not user or not isinstance(user, User):
         raise HTTPException(
@@ -41,45 +60,44 @@ async def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user",
+        )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.jwt.access_token_expire_minutes)
+    refresh_token_expires = timedelta(minutes=settings.jwt.refresh_token_expire_minutes)
+
     access_token = create_access_token(
-        data={"sub": user.username, "fresh": True},
+        data={"sub": user.username},
         expires_delta=access_token_expires,
     )
 
-    refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
-    refresh_token = create_refresh_token(
+    refresh_token = create_access_token(
         data={"sub": user.username},
         expires_delta=refresh_token_expires,
     )
 
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-    )
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
-@router.post("/refresh_token", response_model=Token)
-async def refresh_token(form_data: RefreshToken) -> Token:
-    """Refresh access token using refresh token."""
-    user = await validate_token(token=form_data.refresh_token)
+@router.post("/refresh", response_model=Token)
+async def refresh_token(
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Refresh access token."""
+    access_token_expires = timedelta(minutes=settings.jwt.access_token_expire_minutes)
+    refresh_token_expires = timedelta(minutes=settings.jwt.refresh_token_expire_minutes)
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "fresh": False},
+        data={"sub": current_user.username},
         expires_delta=access_token_expires,
     )
 
-    refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
-    refresh_token = create_refresh_token(
-        data={"sub": user.username},
+    refresh_token = create_access_token(
+        data={"sub": current_user.username},
         expires_delta=refresh_token_expires,
     )
 
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-    )
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Extra
 from sqlmodel import Field, SQLModel
 
 
-class Content(SQLModel, table=True):  # type: ignore[call-arg]
+class Content(SQLModel, table=True):  # type: ignore
     """This is an example model for your application.
 
     Replace with the *things* you do in your application.

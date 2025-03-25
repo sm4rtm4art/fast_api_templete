@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Generator
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
+from typing import Any, TypeAlias, cast
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -13,10 +13,7 @@ from sqlmodel import Field, Session, SQLModel, select
 
 from .config.settings import settings
 from .db import engine
-from .models import UserCreate
-
-if TYPE_CHECKING:
-    from .models import UserCreate
+from .models.user import UserCreate, UserResponse
 
 # Type aliases for better readability
 JWTData: TypeAlias = dict[str, Any]
@@ -76,46 +73,52 @@ class HashedPassword(str):
         return cls(v)
 
 
-class User(SQLModel, table=True):  # type: ignore[call-arg]
-    """User model for authentication."""
+class User(SQLModel, table=True):  # type: ignore
+    """User model."""
 
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
-    email: str = Field(unique=True, index=True)
-    full_name: str | None = None
-    disabled: bool | None = Field(default=False)
+    email: str
     hashed_password: str
+    full_name: str | None = None
+    is_active: bool = Field(default=True)
+    is_superuser: bool = Field(default=False)
+    is_admin: bool = Field(default=False)
+    disabled: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    superuser: bool = Field(default=False)
-    is_active: bool = True
-    is_admin: bool = False
-    is_superuser: bool = False
 
     @classmethod
-    def create(cls, session: Session, user_in: UserCreate) -> "User":
+    def create(cls, user_in: UserCreate, session: Session) -> "User":
         """Create a new user."""
-        user = cls(
+        hashed_password = get_password_hash(user_in.password)
+        db_user = cls(
             username=user_in.username,
             email=user_in.email,
-            hashed_password=get_password_hash(user_in.password),
+            hashed_password=hashed_password,
+            full_name=user_in.full_name,
             is_active=user_in.is_active,
-            is_admin=user_in.is_admin,
             is_superuser=user_in.is_superuser,
+            is_admin=user_in.is_admin,
+            disabled=user_in.disabled,
         )
-        session.add(user)
-        session.flush()
-        return user
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+        return db_user
 
-
-class UserResponse(BaseModel):
-    """User response model."""
-
-    id: int
-    username: str
-    email: str | None = None
-    full_name: str | None = None
-    disabled: bool | None = None
-    created_at: datetime
+    def to_response(self) -> UserResponse:
+        """Convert to response model."""
+        return UserResponse(
+            id=self.id if self.id is not None else 0,
+            username=self.username,
+            email=self.email,
+            full_name=self.full_name,
+            is_active=self.is_active,
+            is_superuser=self.is_superuser,
+            is_admin=self.is_admin,
+            disabled=self.disabled,
+            created_at=self.created_at,
+        )
 
 
 class UserPasswordPatch(BaseModel):
@@ -265,8 +268,12 @@ AuthenticatedFreshUser = get_authenticated_fresh_user_dependency()
 async def get_current_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    if not current_user.superuser:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not an admin user")
+    """Get current admin user."""
+    if not current_user.is_admin and not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
     return current_user
 
 

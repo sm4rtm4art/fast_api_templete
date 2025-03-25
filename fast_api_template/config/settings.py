@@ -5,8 +5,8 @@ from typing import Any, List, Optional, Union
 from dynaconf import Dynaconf, Validator
 
 settings = Dynaconf(
-    envvar_prefix="DYNACONF",
-    settings_files=["settings.toml", ".secrets.toml"],
+    envvar_prefix="FAST_API_TEMPLATE",
+    settings_files=["config.toml", ".secrets.toml", "default.toml"],
     environments=True,
     load_dotenv=True,
     validators=[
@@ -16,26 +16,28 @@ settings = Dynaconf(
         Validator("server.version", default="0.1.0"),
         Validator("server.docs_url", default="/docs"),
         Validator("server.port", default=8000),
-        Validator("server.host", default="0.0.0.0"),
+        Validator("server.host", default="127.0.0.1"),
         Validator("server.log_level", default="info"),
         Validator("server.reload", default=False),
         Validator("server.cors_origins", default=["*"]),
+        Validator("server.cors_allow_credentials", default=True),
         # Database settings
         Validator("database.echo", default=False),
-        Validator("database.url", must_exist=True),
+        Validator("database.url", required=True),
         # JWT settings
-        Validator("jwt.secret_key", must_exist=True),
+        Validator("jwt.secret_key", required=True),
         Validator("jwt.algorithm", default="HS256"),
         Validator("jwt.access_token_expire_minutes", default=30),
+        Validator("jwt.refresh_token_expire_days", default=7),
         # Cloud settings
-        Validator("cloud.provider", default="aws"),
-        Validator("cloud.aws.access_key_id", when=Validator("cloud.provider", eq="aws")),
-        Validator("cloud.aws.secret_access_key", when=Validator("cloud.provider", eq="aws")),
-        Validator("cloud.aws.region", when=Validator("cloud.provider", eq="aws")),
-        Validator("cloud.gcp.project_id", when=Validator("cloud.provider", eq="gcp")),
-        Validator("cloud.gcp.credentials_file", when=Validator("cloud.provider", eq="gcp")),
-        Validator("cloud.azure.connection_string", when=Validator("cloud.provider", eq="azure")),
-        Validator("cloud.azure.subscription_id", when=Validator("cloud.provider", eq="azure")),
+        Validator("cloud.provider", default="local"),
+        Validator("cloud.aws.region", default="us-east-1"),
+        Validator("cloud.aws.bucket", default="fast-api-template"),
+        Validator("cloud.azure.connection_string", required=False),
+        Validator("cloud.azure.container", default="fast-api-template"),
+        Validator("cloud.gcp.project_id", required=False),
+        Validator("cloud.gcp.bucket", default="fast-api-template"),
+        Validator("cloud.local.storage_path", default="local_storage"),
     ],
 )
 

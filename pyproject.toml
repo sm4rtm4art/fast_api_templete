@@ -119,27 +119,71 @@ fast_api_template = "fast_api_template.__main__:main"
 packages = ["fast_api_template"]
 
 [tool.ruff]
-# Maximum line length for code
-line-length = 120
-# Target Python version for compatibility checks
-target-version = "py312"
-# Selected rules for code quality checks
-select = [
-    "E",   # pycodestyle errors (basic style guide enforcement)
-    "F",   # pyflakes (basic syntax and undefined names)
-    "B",   # flake8-bugbear (likely bugs and design problems)
-    "I",   # isort (import sorting)
-    "N",   # pep8-naming (naming conventions)
-    "UP",  # pyupgrade (upgrade syntax for newer Python versions)
-    "PL",  # pylint (general code analysis)
-    "RUF", # ruff-specific rules
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
 ]
-# No specific rules to ignore
-ignore = []
 
-[tool.ruff.isort]
-# Modules that should be considered first-party (our own code)
+# Same as Black.
+line-length = 120
+indent-width = 4
+
+# Target Python 3.12
+target-version = "py312"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = ["E", "F", "I", "B", "W", "C90"]
+ignore = [
+    "B008",  # Do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore B008 for FastAPI's Depends function
+"**/routes/*.py" = ["B008"]
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.lint.isort]
 known-first-party = ["fast_api_template"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+# Use double quotes for strings.
+quote-style = "double"
+
+# Indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, respect magic trailing commas.
+line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.12"
@@ -151,21 +195,21 @@ check_untyped_defs = true
 disallow_untyped_decorators = false
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = false
+warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
-
-# Ignore missing imports for third-party libraries
-ignore_missing_imports = true
-
-# Per-module options
-[[tool.mypy.overrides]]
-module = ["sqlmodel", "sqlmodel.*", "fastapi.*", "pytest.*"]
-ignore_errors = true
+mypy_path = "stubs"
 
 [[tool.mypy.overrides]]
-module = ["tests.*"]
+module = ["fastapi.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
 disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
