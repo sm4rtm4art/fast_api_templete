@@ -1,6 +1,8 @@
 """Test configuration module."""
 
 import os
+import time
+from pathlib import Path
 from typing import Any, Generator
 
 import pytest
@@ -17,8 +19,9 @@ from fast_api_template.utils.password import get_password_hash
 os.environ["FORCE_ENV_FOR_DYNACONF"] = "testing"
 os.environ["FAST_API_TEMPLATE_SETTINGS_FILE"] = "tests/test_settings.toml"
 
-# Define test database connection
-TEST_DB_URL = "sqlite:///test.db"
+# Define test database file path
+TEST_DB_PATH = Path("test.db")
+TEST_DB_URL = f"sqlite:///{TEST_DB_PATH}"
 TEST_ENGINE = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
 
 
@@ -29,13 +32,24 @@ def override_get_db() -> Generator[Session, None, None]:
 
 
 def remove_db() -> None:
-    """Remove the test database."""
+    """Remove the test database with proper cleanup for Windows.
+
+    Handles file locks on Windows platforms.
+    """
+    # Close any open connections to ensure the file can be deleted
+    if hasattr(TEST_ENGINE, "dispose"):
+        TEST_ENGINE.dispose()
+
+    # Wait a moment for connections to fully close
+    time.sleep(0.1)
+
     try:
-        db_path = "test.db"
-        if os.path.exists(db_path):
-            os.remove(db_path)
-    except FileNotFoundError:
-        pass
+        if TEST_DB_PATH.exists():
+            TEST_DB_PATH.unlink()
+    except (PermissionError, OSError) as e:
+        # On Windows, sometimes we can't delete right away even after dispose
+        print(f"Warning: Could not remove test database: {e}")
+        # Let's not fail the test just because we couldn't delete the file
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -152,3 +166,5 @@ def session() -> Generator[Session, None, None]:
     """Create a database session."""
     with Session(TEST_ENGINE) as session:
         yield session
+        # Ensure session is closed
+        session.close()
