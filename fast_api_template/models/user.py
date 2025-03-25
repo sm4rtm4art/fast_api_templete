@@ -35,6 +35,7 @@ class HashedPassword(str):
         return cls(v)
 
 
+# mypy: disable-error-code="call-arg"
 class User(SQLModel, table=True):
     """User model."""
 
