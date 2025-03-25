@@ -80,7 +80,7 @@ jobs:
         run: |
           source .venv/bin/activate
           # Run all fixable rules at once
-          ruff check --fix fast_api_template
+          ruff check --fix fast_api_template scripts
         shell: bash
 
       - name: Fix code with Ruff (Windows)
@@ -88,7 +88,7 @@ jobs:
         run: |
           .\.venv\Scripts\Activate.ps1
           # Run all fixable rules at once
-          ruff check --fix fast_api_template
+          ruff check --fix fast_api_template scripts
         shell: pwsh
 
       - name: Check code with Ruff (Linux/macOS)
@@ -96,7 +96,7 @@ jobs:
         run: |
           source .venv/bin/activate
           # Verify all issues are resolved
-          ruff check --output-format=github fast_api_template
+          ruff check --output-format=github fast_api_template scripts
         shell: bash
 
       - name: Check code with Ruff (Windows)
@@ -104,27 +104,29 @@ jobs:
         run: |
           .\.venv\Scripts\Activate.ps1
           # Verify all issues are resolved
-          ruff check --output-format=github fast_api_template
+          ruff check --output-format=github fast_api_template scripts
         shell: pwsh
 
       - name: Check formatting (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
-          ruff format --check --line-length 120 fast_api_template tests
+          ruff format --check --line-length 120 fast_api_template tests scripts
         shell: bash
 
       - name: Check formatting (Windows)
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
-          ruff format --check --line-length 120 fast_api_template tests
+          ruff format --check --line-length 120 fast_api_template tests scripts
         shell: pwsh
 
       - name: Type check with mypy (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
+          # Install type stubs
+          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli
           mypy --config-file=pyproject.toml fast_api_template
         shell: bash
 
@@ -132,6 +134,8 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
+          # Install type stubs
+          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli
           mypy --config-file=pyproject.toml fast_api_template
         shell: pwsh
 
@@ -216,7 +220,7 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          uv pip install -e ".[test]"
+          uv pip install -e ".[test,lint]"
         shell: bash
 
       - name: Install dependencies (Windows)
@@ -224,7 +228,7 @@ jobs:
         run: |
           uv venv
           .\.venv\Scripts\Activate.ps1
-          uv pip install -e ".[test]"
+          uv pip install -e ".[test,lint]"
         shell: pwsh
 
       - name: Test with pytest (Linux/macOS)

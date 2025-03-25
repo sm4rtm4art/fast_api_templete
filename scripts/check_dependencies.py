@@ -21,9 +21,9 @@ def ensure_dependencies() -> None:
         try:
             __import__(package)
         except ImportError:
-            print(f"{package} not found. Adding to project...")
-            # Add to pyproject.toml AND install in current environment
-            subprocess.check_call(["uv", "add", "--optional", "security", package])
+            print(f"{package} not found. Installing...")
+            cmd = ["uv", "add", "--optional", "security", package]
+            subprocess.check_call(cmd)
             try:
                 __import__(package)
             except ImportError:
@@ -82,8 +82,6 @@ def run_safety_check(dependencies: List[str]) -> int:
             temp.write(f"{dep}\n")
         temp_path = temp.name
 
-    print(f"Scanning {len(dependencies)} dependencies for vulnerabilities...")
-
     try:
         # Run safety scan on the temporary requirements file
         cmd = [
@@ -92,6 +90,7 @@ def run_safety_check(dependencies: List[str]) -> int:
             "--file",
             temp_path,
             "--json",
+            "--quiet",
             "--non-interactive",
         ]
 
@@ -99,24 +98,26 @@ def run_safety_check(dependencies: List[str]) -> int:
 
         # Parse and display results
         if result.returncode == 0:
-            print("No security vulnerabilities found!")
+            print("✅ No security vulnerabilities found")
             return 0
         else:
             try:
                 # Try to parse JSON output
                 vulnerabilities = json.loads(result.stdout)
                 vuln_count = len(vulnerabilities)
-                print(f"Found {vuln_count} security vulnerabilities:")
+                print(f"⚠️ Found {vuln_count} security vulnerabilities")
+                # Only print details for high severity vulnerabilities
                 for vuln in vulnerabilities:
-                    package = vuln.get("package_name")
-                    version = vuln.get("vulnerable_spec")
-                    advisory = vuln.get("advisory")
-                    print(f"- {package} {version}: {advisory}")
+                    severity = vuln.get("severity", "unknown")
+                    if severity in ["high", "critical"]:
+                        package = vuln.get("package_name")
+                        version = vuln.get("vulnerable_spec")
+                        advisory = vuln.get("advisory")
+                        print(f"- {package} {version}: {advisory}")
                 return 1
             except json.JSONDecodeError:
-                # Fall back to raw output
-                print("Security vulnerabilities found:")
-                print(result.stdout)
+                # Fall back to raw output but keep it minimal
+                print("⚠️ Security vulnerabilities found")
                 return 1
     except Exception as e:
         print(f"Error scanning dependencies: {e}")

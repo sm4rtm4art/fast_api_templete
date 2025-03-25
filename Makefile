@@ -187,6 +187,8 @@ docker-prod-stop: 	## Bring down production docker environment
 
 .PHONY: mypy
 mypy: ## Run mypy
+	@echo "Running mypy..."
+	@uv pip install tomli || echo "tomli already installed"
 	$(ENV_PREFIX)mypy --config-file=pyproject.toml fast_api_template/
 
 .PHONY: mypy-report
