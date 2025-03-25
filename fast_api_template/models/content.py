@@ -5,11 +5,13 @@ from pydantic import BaseModel, Extra
 from sqlmodel import Field, SQLModel
 
 
-class Content(SQLModel, table=True):  # type: ignore
+class Content(SQLModel):
     """This is an example model for your application.
 
     Replace with the *things* you do in your application.
     """
+
+    model_config = {"table": True}
 
     id: int | None = Field(default=None, primary_key=True)
     title: str

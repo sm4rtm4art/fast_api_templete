@@ -4,6 +4,7 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
+        exclude: ^\.safety-project\.ini$
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files
@@ -21,11 +22,22 @@ repos:
 
   # Add proper type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.6.1
+    rev: v1.15.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-requests, pydantic, types-python-jose, types-passlib]
-        exclude: ^tests/
+        additional_dependencies:
+          [
+            types-requests,
+            pydantic,
+            types-python-jose,
+            types-passlib,
+            types-redis,
+            types-boto3,
+            boto3-stubs,
+            mypy-boto3-s3,
+            mypy-boto3-sqs,
+          ]
+        args: [--config-file=pyproject.toml]
 
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.10
@@ -49,6 +61,9 @@ repos:
         language: system
         pass_filenames: false
         files: pyproject.toml
+        require_serial: true
+        stages: [pre-commit]
+        always_run: true
 
   # Temporarily disable interrogate until we improve docstring coverage
   - repo: https://github.com/econchick/interrogate

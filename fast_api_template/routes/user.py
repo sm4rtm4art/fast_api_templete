@@ -1,58 +1,57 @@
-from typing import Any
+"""User routes module."""
+
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from ..db import ActiveSession
-from ..security import (
-    AdminUser,
-    AuthenticatedFreshUser,
-    AuthenticatedUser,
-    User,
-    UserCreate,
-    UserPasswordPatch,
-    UserResponse,
+from ..auth_core import (
+    get_current_active_user,
+    get_current_admin_user,
+    get_current_fresh_user,
     get_current_user,
-    get_password_hash,
 )
+from ..db import ActiveSession
+from ..models.user import User, UserCreate, UserPasswordPatch, UserResponse
+from ..utils.password import get_password_hash
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[UserResponse], dependencies=[AdminUser])
+@router.get(
+    "/",
+    response_model=List[UserResponse],
+    dependencies=[Depends(get_current_admin_user)],
+)
 async def list_users(*, session: Session = ActiveSession) -> Any:
     """List all users."""
-    users = session.exec(select(User)).all()
+    statement = select(User)
+    users = session.exec(statement).all()
     return users
 
 
-@router.post("/", response_model=UserResponse, dependencies=[AdminUser])
+@router.post(
+    "/",
+    response_model=UserResponse,
+    dependencies=[Depends(get_current_admin_user)],
+)
 async def create_user(*, session: Session = ActiveSession, user: UserCreate) -> Any:
     """Create a new user."""
-    # verify user with username doesn't already exist
-    existing = session.exec(select(User).where(User.username == user.username)).first()
-    if existing:
-        raise HTTPException(status_code=422, detail="Username already exists")
+    statement = select(User).where(User.username == user.username)
+    db_user = session.exec(statement).first()
+    if db_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already registered",
+        )
 
-    # create user
-    new_user = User(
-        username=user.username,
-        email=user.email,
-        full_name=user.full_name,
-        hashed_password=get_password_hash(user.password),
-        superuser=user.superuser,
-        disabled=user.disabled,
-    )
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-    return new_user
+    return User.create(user, session)
 
 
 @router.patch(
     "/{user_id}/password/",
     response_model=UserResponse,
-    dependencies=[AuthenticatedFreshUser],
+    dependencies=[Depends(get_current_fresh_user)],
 )
 async def update_user_password(
     *,
@@ -61,21 +60,26 @@ async def update_user_password(
     patch: UserPasswordPatch,
     current_user: User = Depends(get_current_user),
 ) -> Any:
-    """Update a user's password."""
-    # verify the passwords match
+    """Update user password."""
     if patch.password != patch.password_confirm:
-        raise HTTPException(status_code=422, detail="Passwords do not match")
+        raise HTTPException(
+            status_code=400,
+            detail="Passwords do not match",
+        )
 
-    # verify the user exists
     user = session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
 
-    # verify the user is the current user or the current user is an admin
-    if user.id != current_user.id and not current_user.superuser:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    if current_user.id != user.id and not current_user.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Not enough permissions",
+        )
 
-    # update the password
     user.hashed_password = get_password_hash(patch.password)
     session.add(user)
     session.commit()
@@ -86,36 +90,53 @@ async def update_user_password(
 @router.get(
     "/{user_id_or_username}/",
     response_model=UserResponse,
-    dependencies=[AuthenticatedUser],
+    dependencies=[Depends(get_current_active_user)],
 )
-async def get_user_by_id_or_username(*, session: Session = ActiveSession, user_id_or_username: str | int) -> Any:
+async def get_user_by_id_or_username(
+    *,
+    session: Session = ActiveSession,
+    user_id_or_username: str | int,
+) -> Any:
     """Get a user by ID or username."""
-    if isinstance(user_id_or_username, int) or user_id_or_username.isdigit():
-        user = session.get(User, int(user_id_or_username))
+    if isinstance(user_id_or_username, int):
+        user = session.get(User, user_id_or_username)
     else:
-        user = session.exec(select(User).where(User.username == user_id_or_username)).first()
+        statement = select(User).where(User.username == user_id_or_username)
+        user = session.exec(statement).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
 
     return user
 
 
-@router.delete("/{user_id}/", dependencies=[AdminUser])
+@router.delete(
+    "/{user_id}/",
+    dependencies=[Depends(get_current_admin_user)],
+)
 def delete_user(
-    *, session: Session = ActiveSession, user_id: int, current_user: User = Depends(get_current_user)
+    *,
+    session: Session = ActiveSession,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """Delete a user."""
-    # verify the user exists
     user = session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
 
-    # Don't allow deleting yourself
-    if user.id == current_user.id:
-        raise HTTPException(status_code=403, detail="Cannot delete yourself")
+    if current_user.id == user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete yourself",
+        )
 
-    # delete the user
     session.delete(user)
     session.commit()
-    return {"status": "success", "message": f"User {user_id} deleted"}
+    return {"ok": True}

@@ -245,3 +245,158 @@ This project is a modernized version of [fastapi-project-template](https://githu
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Cloud Provider Support
+
+This template includes support for major cloud providers (AWS, GCP, Azure) with their specific features. The cloud services are organized in a modular way, allowing you to use only the providers you need.
+
+### Installation
+
+Install the cloud provider dependencies you need:
+
+```bash
+# Install with AWS support
+pip install "fast-api-template[aws]"
+
+# Install with GCP support
+pip install "fast-api-template[gcp]"
+
+# Install with Azure support
+pip install "fast-api-template[azure]"
+
+# Install with all cloud providers
+pip install "fast-api-template[cloud]"
+```
+
+### Project Structure
+
+```
+fast_api_template/
+├── cloud/                    # Cloud provider implementations
+│   ├── __init__.py          # Package exports
+│   ├── cloud_service_interface.py  # Base interface for cloud services
+│   ├── cloud_service_provider.py   # Provider for creating cloud services
+│   ├── aws.py              # AWS implementation
+│   ├── gcp.py              # GCP implementation
+│   ├── azure.py            # Azure implementation
+│   └── local.py            # Local implementation
+└── config/
+    └── cloud.py            # Cloud configuration
+```
+
+### Usage
+
+1. Configure your cloud provider in settings:
+
+```python
+# config/settings.toml
+[default]
+cloud.provider = "aws"  # or "gcp" or "azure"
+cloud.region = "us-east-1"
+
+[default.aws]
+profile = "default"
+s3.bucket = "my-bucket"
+```
+
+2. Use the cloud services in your code:
+
+```python
+from fast_api_template.cloud import CloudServiceProvider, CloudConfig
+
+# Create cloud service based on configuration
+config = CloudConfig(settings)
+cloud_service = CloudServiceProvider.create_service(config)
+
+# Use the service
+storage_client = cloud_service.get_storage_client()
+cache_client = cloud_service.get_cache_client()
+queue_client = cloud_service.get_queue_client()
+```
+
+### Supported Services
+
+Each cloud provider supports the following services:
+
+#### AWS
+
+- Storage: Amazon S3
+- Cache: Amazon ElastiCache
+- Queue: Amazon SQS
+
+#### GCP
+
+- Storage: Google Cloud Storage
+- Cache: Cloud Memorystore
+- Queue: Cloud Pub/Sub
+
+#### Azure
+
+- Storage: Azure Blob Storage
+- Cache: Azure Cache for Redis
+- Queue: Azure Service Bus
+
+### Configuration
+
+Cloud provider settings can be configured through:
+
+1. Environment variables:
+
+```bash
+export CLOUD_PROVIDER=aws
+export AWS_PROFILE=default
+export AWS_S3_BUCKET=my-bucket
+```
+
+2. Configuration files:
+
+```toml
+# config/settings.toml
+[default]
+cloud.provider = "aws"
+cloud.region = "us-east-1"
+
+[default.aws]
+profile = "default"
+s3.bucket = "my-bucket"
+elasticache.endpoint = "my-cache.xxxxx.ng.0001.use1.cache.amazonaws.com"
+sqs.queue_url = "https://sqs.us-east-1.amazonaws.com/123456789012/my-queue"
+```
+
+3. Secrets file:
+
+```toml
+# config/.secrets.toml
+[default.aws]
+access_key_id = "your-access-key"
+secret_access_key = "your-secret-key"
+```
+
+### Development
+
+When developing locally, you can use the `local` provider which provides no-op implementations:
+
+```python
+# config/settings.toml
+[default]
+cloud.provider = "local"
+```
+
+This allows you to develop and test your application without actual cloud services.
+
+### Architecture
+
+The cloud provider implementation follows clean architecture principles:
+
+1. **Interface Segregation**: Each cloud service type (storage, cache, queue) has its own interface method
+2. **Dependency Inversion**: High-level modules depend on abstractions (interfaces)
+3. **Single Responsibility**: Each class has a single, well-defined purpose
+4. **Open/Closed**: New cloud providers can be added without modifying existing code
+5. **Liskov Substitution**: All provider implementations are interchangeable
+
+The code is organized to be:
+
+- **Maintainable**: Clear separation of concerns and well-documented interfaces
+- **Extensible**: Easy to add new cloud providers or service types
+- **Testable**: Interfaces make it easy to mock cloud services
+- **Type-safe**: Comprehensive type hints and validation

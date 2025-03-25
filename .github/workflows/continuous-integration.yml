@@ -80,7 +80,7 @@ jobs:
         run: |
           source .venv/bin/activate
           # Run all fixable rules at once
-          ruff check --fix fast_api_template
+          ruff check --fix fast_api_template scripts
         shell: bash
 
       - name: Fix code with Ruff (Windows)
@@ -88,7 +88,7 @@ jobs:
         run: |
           .\.venv\Scripts\Activate.ps1
           # Run all fixable rules at once
-          ruff check --fix fast_api_template
+          ruff check --fix fast_api_template scripts
         shell: pwsh
 
       - name: Check code with Ruff (Linux/macOS)
@@ -96,7 +96,7 @@ jobs:
         run: |
           source .venv/bin/activate
           # Verify all issues are resolved
-          ruff check --output-format=github fast_api_template
+          ruff check --output-format=github fast_api_template scripts
         shell: bash
 
       - name: Check code with Ruff (Windows)
@@ -104,35 +104,39 @@ jobs:
         run: |
           .\.venv\Scripts\Activate.ps1
           # Verify all issues are resolved
-          ruff check --output-format=github fast_api_template
+          ruff check --output-format=github fast_api_template scripts
         shell: pwsh
 
       - name: Check formatting (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
-          ruff format --check --line-length 120 fast_api_template tests
+          ruff format --check --line-length 120 fast_api_template tests scripts
         shell: bash
 
       - name: Check formatting (Windows)
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
-          ruff format --check --line-length 120 fast_api_template tests
+          ruff format --check --line-length 120 fast_api_template tests scripts
         shell: pwsh
 
       - name: Type check with mypy (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
-          mypy --ignore-missing-imports fast_api_template
+          # Install type stubs
+          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli
+          mypy --config-file=pyproject.toml fast_api_template
         shell: bash
 
       - name: Type check with mypy (Windows)
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
-          mypy --ignore-missing-imports fast_api_template
+          # Install type stubs
+          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli
+          mypy --config-file=pyproject.toml fast_api_template
         shell: pwsh
 
   security:
@@ -216,7 +220,7 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          uv pip install -e ".[test]"
+          uv pip install -e ".[test,lint]"
         shell: bash
 
       - name: Install dependencies (Windows)
@@ -224,7 +228,7 @@ jobs:
         run: |
           uv venv
           .\.venv\Scripts\Activate.ps1
-          uv pip install -e ".[test]"
+          uv pip install -e ".[test,lint]"
         shell: pwsh
 
       - name: Test with pytest (Linux/macOS)
@@ -249,44 +253,23 @@ jobs:
           fail_ci_if_error: false
 
   docker:
-    needs: test
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Uncomment to enable pushing to Docker Hub
-      # - name: Login to Docker Hub
-      #   if: github.ref == 'refs/heads/main'
-      #   uses: docker/login-action@v3
-      #   with:
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and test dev image
+      - name: Build and push Docker images
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.dev
-          push: false
-          # push: ${{ github.ref == 'refs/heads/main' }}  # Uncomment to enable pushing
-          tags: fast_api_template:dev
-          # tags: ${{ secrets.DOCKERHUB_USERNAME }}/fast_api_template:dev  # Uncomment for Docker Hub
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and test prod image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          # push: ${{ github.ref == 'refs/heads/main' }}  # Uncomment to enable pushing
-          tags: fast_api_template:latest
-          # tags: ${{ secrets.DOCKERHUB_USERNAME }}/fast_api_template:latest  # Uncomment for Docker Hub
+          push: true
+          tags: |
+            ${{ github.repository }}:latest
+            ${{ github.repository }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

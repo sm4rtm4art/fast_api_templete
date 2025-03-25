@@ -3,12 +3,13 @@
 Script to clean up unused imports in Python files.
 Run this on any files that still have unused imports after running fix-linting.sh.
 """
+
 import re
 import sys
 from pathlib import Path
 
 
-def remove_unused_imports(file_path):
+def remove_unused_imports(file_path: str) -> None:
     """Remove imports marked as unused by Ruff."""
     content = Path(file_path).read_text()
 

@@ -23,6 +23,7 @@ Notes:
     - It's a helper tool - you should review the changes afterward and
       adjust as needed
 """
+
 import os
 import re
 import sys

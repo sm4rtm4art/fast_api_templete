@@ -5,6 +5,7 @@ Fix Imports Script
 This script fixes issues with imports in Python files, particularly focusing on
 adding proper imports for commonly used types like 'Any'.
 """
+
 import os
 import re
 from pathlib import Path

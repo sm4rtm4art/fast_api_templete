@@ -1,27 +1,29 @@
-from typing import Any
+from typing import Any, List
 
-from fastapi import APIRouter, Depends
-from fastapi.exceptions import HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from ..db import ActiveSession
+from ..auth_core import User, get_current_user
+from ..db import get_session
 from ..models.content import Content, ContentIncoming, ContentResponse
-from ..security import AuthenticatedUser, User, get_current_user
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[ContentResponse])
-async def list_contents(*, session: Session = ActiveSession) -> Any:
-    contents = session.exec(select(Content)).all()
-    for content in contents:
-        if isinstance(content.tags, str):
-            content.tags = content.tags.split(",") if content.tags else []
+@router.get("/", response_model=List[ContentResponse])
+async def get_contents(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Any:
+    """Get all contents."""
+    contents = session.exec(select(Content).offset(skip).limit(limit)).all()
     return contents
 
 
 @router.get("/{id_or_slug}/", response_model=ContentResponse)
-async def query_content(*, id_or_slug: str | int, session: Session = ActiveSession) -> Any:
+async def query_content(*, id_or_slug: str | int, session: Session = Depends(get_session)) -> Any:
     query = None
     if isinstance(id_or_slug, int):
         query = select(Content).where(Content.id == id_or_slug)
@@ -32,72 +34,62 @@ async def query_content(*, id_or_slug: str | int, session: Session = ActiveSessi
     if not content:
         raise HTTPException(status_code=404, detail="Content not found")
 
-    if isinstance(content.tags, str):
-        content.tags = content.tags.split(",") if content.tags else []
-
-    return content
+    return ContentResponse.model_validate(content)
 
 
-@router.post("/", response_model=ContentResponse, dependencies=[AuthenticatedUser])
-async def create_content(
-    *, session: Session = ActiveSession, content: ContentIncoming, current_user: User = Depends(get_current_user)
-) -> Any:
-    # Set the ownership of the content to the current user
-    new_content = Content.model_validate(content)
-    new_content.user_id = current_user.id
-
-    # Save to DB
-    session.add(new_content)
-    session.commit()
-    session.refresh(new_content)
-
-    # Convert tags to list for response
-    if isinstance(new_content.tags, str):
-        new_content.tags = new_content.tags.split(",") if new_content.tags else []
-
-    return new_content
-
-
-@router.patch(
-    "/{content_id}/",
+@router.post(
+    "/",
     response_model=ContentResponse,
-    dependencies=[AuthenticatedUser],
+    dependencies=[Depends(get_current_user)],
 )
-async def update_content(
-    *,
-    content_id: int,
-    session: Session = ActiveSession,
-    patch: ContentIncoming,
+async def create_content(
+    content_in: ContentIncoming,
     current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
 ) -> Any:
-    # Query the content
-    content = session.get(Content, content_id)
-    if not content:
-        raise HTTPException(status_code=404, detail="Content not found")
-
-    # Check the user has permission to edit
-    if content.user_id != current_user.id and not current_user.superuser:
-        raise HTTPException(status_code=403, detail="You don't have permission to edit this content")
-
-    # Update the content
-    content_data = patch.dict(exclude_unset=True)
-    for key, value in content_data.items():
-        setattr(content, key, value)
-
+    """Create a new content."""
+    content = Content(
+        **content_in.model_dump(),
+        user_id=current_user.id,
+    )
     session.add(content)
     session.commit()
     session.refresh(content)
-
-    # Convert tags to list for response
-    if isinstance(content.tags, str):
-        content.tags = content.tags.split(",") if content.tags else []
-
-    return content
+    return ContentResponse.model_validate(content)
 
 
-@router.delete("/{content_id}/", dependencies=[AuthenticatedUser])
+@router.put("/{content_id}", response_model=ContentResponse)
+async def update_content(
+    content_id: int,
+    content_in: ContentIncoming,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Any:
+    """Update a content."""
+    content = session.get(Content, content_id)
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Content not found",
+        )
+    if content.user_id != current_user.id and not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions",
+        )
+    for key, value in content_in.model_dump().items():
+        setattr(content, key, value)
+    session.commit()
+    session.refresh(content)
+    return ContentResponse.model_validate(content)
+
+
+@router.delete(
+    "/{content_id}/",
+    dependencies=[Depends(get_current_user)],
+)
 def delete_content(
-    *, session: Session = ActiveSession, content_id: int, current_user: User = Depends(get_current_user)
+    *, session: Session = Depends(get_session), content_id: int, current_user: User = Depends(get_current_user)
 ) -> Any:
     # Query the content
     content = session.get(Content, content_id)
@@ -105,7 +97,7 @@ def delete_content(
         raise HTTPException(status_code=404, detail="Content not found")
 
     # Check the user has permission to delete
-    if content.user_id != current_user.id and not current_user.superuser:
+    if content.user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="You don't have permission to delete this content")
 
     # Delete the content
