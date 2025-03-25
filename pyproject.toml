@@ -208,7 +208,7 @@ check_untyped_defs = false
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
-module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*"]
+module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*", "azure.*", "mypy_boto3_s3.*", "mypy_boto3_sqs.*", "boto3.*", "redis.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

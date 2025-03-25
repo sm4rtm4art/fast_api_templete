@@ -1,6 +1,8 @@
-"""Cloud service provider for creating appropriate cloud service implementations."""
+"""Cloud service provider module.
 
-from typing import Optional
+This module contains the CloudServiceProvider class which is responsible for
+instantiating the correct cloud service implementation based on configuration.
+"""
 
 from fast_api_template.cloud.aws import AWSCloudService
 from fast_api_template.cloud.azure import AzureCloudService
