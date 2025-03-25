@@ -1,6 +1,6 @@
 """Application settings and configuration."""
 
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
 from dynaconf import Dynaconf, Validator
 

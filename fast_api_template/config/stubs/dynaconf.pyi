@@ -1,14 +1,24 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 class Dynaconf:
-    def __init__(self, **kwargs: Any) -> None: ...
+    def __init__(
+        self,
+        settings_files: Optional[List[str]] = None,
+        validators: Optional[List[Any]] = None,
+        envvar_prefix: Optional[str] = None,
+        includes: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> None: ...
     def __getattr__(self, name: str) -> Any: ...
-    def get(self, key: str, default: Any = None) -> Any: ...
 
-class LazySettings(Dynaconf):
-    def __init__(self, **kwargs: Any) -> None: ...
-    jwt: Any
-    access_token_expire_minutes: int
-    refresh_token_expire_minutes: int
-
-def Validator(*args: Any, **kwargs: Any) -> Any: ...
+class Validator:
+    def __init__(
+        self,
+        name: str,
+        default: Any = None,
+        cast: Optional[str] = None,
+        is_in: Optional[List[Any]] = None,
+        required: bool = False,
+        when: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> None: ...

@@ -73,8 +73,10 @@ class HashedPassword(str):
         return cls(v)
 
 
-class User(SQLModel, table=True):  # type: ignore
+class User(SQLModel):
     """User model."""
+
+    model_config = {"table": True}
 
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)

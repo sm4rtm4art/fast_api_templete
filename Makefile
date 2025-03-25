@@ -185,6 +185,14 @@ docker-prod-run:  	## Run production docker images
 docker-prod-stop: 	## Bring down production docker environment
 	@docker compose -f docker-compose.yaml -p fast_api_template_prod down
 
+.PHONY: mypy
+mypy: ## Run mypy
+	$(ENV_PREFIX)mypy --config-file=pyproject.toml fast_api_template/
+
+.PHONY: mypy-report
+mypy-report: ## Run mypy with HTML report
+	$(ENV_PREFIX)mypy --config-file=pyproject.toml --html-report ./mypy_html fast_api_template/
+
 # This project has been generated from rochacbruno/fastapi-project-template
 # __author__ = 'rochacbruno'
 # __repo__ = https://github.com/rochacbruno/fastapi-project-template

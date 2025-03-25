@@ -125,14 +125,14 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
-          mypy --ignore-missing-imports fast_api_template
+          mypy --config-file=pyproject.toml fast_api_template
         shell: bash
 
       - name: Type check with mypy (Windows)
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
-          mypy --ignore-missing-imports fast_api_template
+          mypy --config-file=pyproject.toml fast_api_template
         shell: pwsh
 
   security:

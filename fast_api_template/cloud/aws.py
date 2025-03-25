@@ -1,15 +1,13 @@
 """AWS cloud service implementation."""
 
-from typing import Literal, Optional, cast
+from typing import Optional, cast
 
 import boto3
 import redis
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sqs.client import SQSClient
-from redis import Redis
 
 from fast_api_template.cloud.cloud_service_interface import CloudService
-from fast_api_template.config.cloud import CloudConfig
 
 
 class AWSCloudService(CloudService):
@@ -26,14 +24,14 @@ class AWSCloudService(CloudService):
             return None
         return cast(
             S3Client,
-            boto3.client(
-                service_name=Literal["s3"],  # type: ignore
-                region_name=self.config.aws_config["region"],
-                profile_name=self.config.aws_config["profile"],
+            boto3.client(  # type: ignore
+                service_name="s3",
+                region_name=self.config.aws_config.get("region", "us-east-1"),
+                profile_name=self.config.aws_config.get("profile"),
             ),
         )
 
-    def get_cache_client(self) -> Optional[Redis]:
+    def get_cache_client(self) -> Optional[redis.Redis]:
         """Get AWS ElastiCache client.
 
         Returns:
@@ -63,9 +61,9 @@ class AWSCloudService(CloudService):
             return None
         return cast(
             SQSClient,
-            boto3.client(
-                service_name=Literal["sqs"],  # type: ignore
-                region_name=queue_config["region"],
-                profile_name=self.config.aws_config["profile"],
+            boto3.client(  # type: ignore
+                service_name="sqs",
+                region_name=queue_config.get("region", self.config.aws_config.get("region", "us-east-1")),
+                profile_name=self.config.aws_config.get("profile"),
             ),
         )
