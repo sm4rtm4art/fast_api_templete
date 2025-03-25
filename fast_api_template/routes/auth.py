@@ -3,6 +3,7 @@ from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session, select
 
 from fast_api_template.auth import (
     Token,
@@ -11,22 +12,28 @@ from fast_api_template.auth import (
     verify_password,
 )
 from fast_api_template.config.settings import settings
+from fast_api_template.db import get_db
+from fast_api_template.models.user import User
 
 router = APIRouter()
 
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> Dict[str, str]:
-    # In a real application, you would verify against a database
-    # This is just a demo implementation
-    if not verify_password(form_data.password, settings.DEMO_USER_PASSWORD_HASH):
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_db)
+) -> Dict[str, str]:
+    # Get user from database
+    statement = select(User).where(User.username == form_data.username)
+    user = session.exec(statement).first()
+
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token_expires = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.jwt.access_token_expire_minutes)
     access_token = create_access_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 

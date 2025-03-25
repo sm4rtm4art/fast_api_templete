@@ -52,8 +52,10 @@ def parse_cors_origin(value: Any) -> List[str]:
     return [origin] if origin else []
 
 
-if settings.SERVER_CORS_ORIGINS:
-    origins = parse_cors_origin(settings.SERVER_CORS_ORIGINS)
+if hasattr(settings, "cors") and hasattr(settings.cors, "origins"):
+    origins = parse_cors_origin(settings.cors.origins)
+else:
+    origins = ["*"]  # Default to allow all origins if not configured
 
 app.add_middleware(
     CORSMiddleware,
@@ -68,9 +70,12 @@ app.include_router(auth_router)
 
 
 @app.on_event("startup")
-async def on_startup() -> None:
-    """Create database tables on startup."""
-    create_db_and_tables()
+async def startup_event() -> None:
+    """Start-up event for the application."""
+    # Only create tables automatically during startup when not in testing environment
+    # For tests, tables are created directly with the test engine
+    if os.environ.get("FORCE_ENV_FOR_DYNACONF") != "testing":
+        create_db_and_tables()
 
 
 @app.get("/health")

@@ -1,132 +1,145 @@
 """Test configuration module."""
 
-import contextlib
 import os
-import sys
-from typing import Any, Generator
+from typing import Generator
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 from typer.testing import CliRunner
 
-# This next line ensures tests uses its own database and settings environment
-os.environ["FORCE_ENV_FOR_DYNACONF"] = "testing"  # noqa
-# WARNING: Ensure imports from `fast_api_template` comes after this line
-from fast_api_template import app, db  # noqa
-from fast_api_template.cli import app as cli_app  # noqa
-from fast_api_template.config.settings import settings
-from fast_api_template.auth_core import User
-from fast_api_template.models import UserCreate
+from fast_api_template.models.user import User
+from fast_api_template.utils.password import get_password_hash
+
+# Set environment variables for testing
+os.environ["FORCE_ENV_FOR_DYNACONF"] = "testing"
+os.environ["FAST_API_TEMPLATE_SETTINGS_FILE"] = "tests/test_settings.toml"
+
+# Define test database connection
+TEST_DB_URL = "sqlite:///test.db"
+TEST_ENGINE = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
 
 
-def create_user(username: str, password: str) -> None:
-    """Create a test user."""
-    with db.get_session() as session:
-        user_in = UserCreate(
-            username=username,
-            email=f"{username}@example.com",
-            password=password,
-            is_admin=True,
-            is_active=True,
-            is_superuser=True,
-        )
-        User.create(user_in=user_in, session=session)
-        session.commit()
-
-
-# each test runs on cwd to its temp dir
-@pytest.fixture(autouse=True)
-def go_to_tmpdir(request: pytest.FixtureRequest) -> Generator[None, None, None]:
-    # Get the fixture dynamically by its name.
-    tmpdir = request.getfixturevalue("tmpdir")
-    # ensure local test created packages can be imported
-    sys.path.insert(0, str(tmpdir))
-    # Chdir only for the duration of the test.
-    with tmpdir.as_cwd():
-        yield
-
-
-@pytest.fixture(scope="function", name="app")
-def _app() -> Any:
-    return app
-
-
-@pytest.fixture(scope="function", name="cli")
-def _cli() -> Any:
-    return cli_app
-
-
-@pytest.fixture(scope="function")
-def api_client() -> TestClient:
-    return TestClient(app)
-
-
-@pytest.fixture(scope="function")
-def api_client_authenticated() -> TestClient:
-    with contextlib.suppress(IntegrityError):
-        create_user("admin", password="admin")
-
-    client = TestClient(app)
-    token = client.post(
-        "/token",
-        data={"username": "admin", "password": "admin"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    ).json()["access_token"]
-    client.headers["Authorization"] = f"Bearer {token}"
-    return client
-
-
-@pytest.fixture(scope="function")
-def cli_client() -> CliRunner:
-    return CliRunner()
-
-
-@pytest.fixture
-def cli_runner() -> CliRunner:
-    """Create a CLI runner."""
-    return CliRunner()
-
-
-@pytest.fixture
-def test_user(cli_runner: CliRunner) -> None:
-    """Create a test user."""
-    result = cli_runner.invoke(
-        cli_app,
-        [
-            "create-user",
-            "test",
-            "--email",
-            "test@example.com",
-            "--password",
-            "test",
-        ],
-    )
-    assert result.exit_code == 0
+# Override the get_db dependency for testing
+def override_get_db() -> Generator[Session, None, None]:
+    with Session(TEST_ENGINE) as session:
+        yield session
 
 
 def remove_db() -> None:
     """Remove the test database."""
     try:
-        db_path = settings.DATABASE_URL.replace("sqlite:///", "")
-        os.remove(db_path)
+        db_path = "test.db"
+        if os.path.exists(db_path):
+            os.remove(db_path)
     except FileNotFoundError:
         pass
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def setup_db() -> Generator[None, None, None]:
-    """Set up the test database."""
+    """Set up database for testing."""
+    # Remove any existing test database
     remove_db()
+
+    # Create test database and tables
+    SQLModel.metadata.create_all(TEST_ENGINE)
+
+    # Create a test user
+    with Session(TEST_ENGINE) as session:
+        try:
+            user = User(
+                username="admin",
+                email="admin@example.com",
+                hashed_password=get_password_hash("admin"),
+                is_active=True,
+                is_admin=True,
+                is_superuser=True,
+            )
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+
+            # Verify user was created correctly
+            statement = select(User).where(User.username == "admin")
+            result = session.exec(statement).first()
+            if result:
+                print(f"\nTest user created and verified: {result.username}")
+            else:
+                print("\nERROR: Test user not found after creation")
+        except IntegrityError:
+            session.rollback()
+            print("\nTest user already exists")
+
+    # Return to tests
     yield
+
+    # Clean up
     remove_db()
+
+
+@pytest.fixture(scope="function")
+def app() -> FastAPI:
+    """Get a fresh copy of the application for testing with dependencies overridden."""
+    # Import the app module
+    from fast_api_template import app as app_instance
+    from fast_api_template.db import get_db
+
+    # Override the get_db dependency
+    app_instance.dependency_overrides[get_db] = override_get_db
+
+    # Also override the engine in auth_core
+    from fast_api_template import auth_core
+
+    auth_core.engine = TEST_ENGINE
+
+    return app_instance
+
+
+@pytest.fixture(scope="function")
+def api_client(app: FastAPI) -> TestClient:
+    """Create a test client."""
+    return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def api_client_authenticated(api_client: TestClient) -> TestClient:
+    """Create an authenticated test client."""
+    # Create auth token
+    try:
+        response = api_client.post(
+            "/token",
+            data={"username": "admin", "password": "admin"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
+        # Check if authentication was successful
+        assert response.status_code == 200, f"Authentication failed: {response.text}"
+
+        # Set authorization header
+        token = response.json()["access_token"]
+        api_client.headers["Authorization"] = f"Bearer {token}"
+    except Exception as e:
+        print(f"Failed to authenticate: {str(e)}")
+        # For debugging
+        with Session(TEST_ENGINE) as session:
+            result = session.exec(select(User)).all()
+            print(f"Available users: {[u.username for u in result]}")
+        raise
+
+    return api_client
+
+
+@pytest.fixture(scope="function")
+def cli_client() -> CliRunner:
+    """Create a CLI runner."""
+    return CliRunner()
 
 
 @pytest.fixture
 def session() -> Generator[Session, None, None]:
     """Create a database session."""
-    engine = create_engine(settings.DATABASE_URL)
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
+    with Session(TEST_ENGINE) as session:
         yield session

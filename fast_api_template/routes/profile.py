@@ -1,12 +1,14 @@
-from typing import Any
+"""Profile routes module."""
 
 from fastapi import APIRouter, Depends
 
-from ..auth_core import User, UserResponse, get_current_active_user
+from ..auth_core import get_current_user
+from ..models.user import User, UserResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/profile", tags=["profile"])
 
 
-@router.get("/", response_model=UserResponse)
-async def my_profile(current_user: User = Depends(get_current_active_user)) -> Any:
+@router.get("/me", response_model=UserResponse)
+async def read_users_me(current_user: User = Depends(get_current_user)) -> User:
+    """Get current user profile."""
     return current_user

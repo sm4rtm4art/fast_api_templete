@@ -1,26 +1,25 @@
 """Authentication core module."""
 
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, TypeAlias, cast
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
-from sqlmodel import Field, Session, SQLModel, select
+from sqlmodel import Session, select
 
 from .config.settings import settings
-from .db import engine
-from .models.user import UserCreate, UserResponse
+from .database import engine
+from .models.user import User
+from .utils.password import verify_password
 
 # Type aliases for better readability
 JWTData: TypeAlias = dict[str, Any]
 JWTResponse: TypeAlias = dict[str, Any]
 DependencyCallable: TypeAlias = Callable[..., Any]
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Access settings with proper type hints
@@ -46,98 +45,6 @@ class TokenData(BaseModel):
     """Token data model."""
 
     username: str | None = None
-
-
-class HashedPassword(str):
-    """Takes a plain text password and hashes it.
-
-    use this as a field in your SQLModel
-
-    class User(SQLModel, table=True):
-        username: str
-        password: HashedPassword
-    """
-
-    @classmethod
-    def __get_validators__(cls) -> Generator[Callable[[Any], str], None, None]:
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: Any) -> str:
-        if not isinstance(v, str):
-            raise TypeError("string required")
-
-        if "password" in v:
-            return cls(get_password_hash(v))
-
-        return cls(v)
-
-
-class User(SQLModel):
-    """User model."""
-
-    model_config = {"table": True}
-
-    id: int | None = Field(default=None, primary_key=True)
-    username: str = Field(unique=True, index=True)
-    email: str
-    hashed_password: str
-    full_name: str | None = None
-    is_active: bool = Field(default=True)
-    is_superuser: bool = Field(default=False)
-    is_admin: bool = Field(default=False)
-    disabled: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    @classmethod
-    def create(cls, user_in: UserCreate, session: Session) -> "User":
-        """Create a new user."""
-        hashed_password = get_password_hash(user_in.password)
-        db_user = cls(
-            username=user_in.username,
-            email=user_in.email,
-            hashed_password=hashed_password,
-            full_name=user_in.full_name,
-            is_active=user_in.is_active,
-            is_superuser=user_in.is_superuser,
-            is_admin=user_in.is_admin,
-            disabled=user_in.disabled,
-        )
-        session.add(db_user)
-        session.commit()
-        session.refresh(db_user)
-        return db_user
-
-    def to_response(self) -> UserResponse:
-        """Convert to response model."""
-        return UserResponse(
-            id=self.id if self.id is not None else 0,
-            username=self.username,
-            email=self.email,
-            full_name=self.full_name,
-            is_active=self.is_active,
-            is_superuser=self.is_superuser,
-            is_admin=self.is_admin,
-            disabled=self.disabled,
-            created_at=self.created_at,
-        )
-
-
-class UserPasswordPatch(BaseModel):
-    """Model for password change operations."""
-
-    password: str
-    password_confirm: str
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    """Hash a password."""
-    return pwd_context.hash(password)
 
 
 def authenticate_user(username: str, password: str) -> User | bool:
@@ -178,7 +85,7 @@ def create_refresh_token(data: JWTData, expires_delta: timedelta | None = None) 
 
 def decode_token(token: str) -> JWTResponse:
     """Decode a JWT token."""
-    credentials_exception = HTTPException(
+    error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
@@ -188,35 +95,38 @@ def decode_token(token: str) -> JWTResponse:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = cast("str", payload.get("sub", ""))
         if username == "":
-            raise credentials_exception
+            raise error
     except JWTError as err:
-        raise credentials_exception from err
+        raise error from err
 
     return payload
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """Get the current user from the token."""
-    credentials_exception = HTTPException(
+    error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode_token(token)
         username: str = cast("str", payload.get("sub", ""))
         if username == "":
-            raise credentials_exception
+            raise error
+        token_data = TokenData(username=username)
     except JWTError as err:
-        raise credentials_exception from err
+        raise error from err
 
+    # Get the session and query for the user
     with Session(engine) as session:
-        statement = select(User).where(User.username == username)
+        statement = select(User).where(User.username == token_data.username)
         user = session.exec(statement).first()
 
     if user is None:
-        raise credentials_exception
+        raise error
+
     return user
 
 

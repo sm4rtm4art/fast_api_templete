@@ -1,19 +1,18 @@
 """FastAPI Template package."""
 
 from .app import app
-from .auth_core import User
 from .cli import app as cli
-from .config import settings
+from .config.settings import settings
 from .db import create_db_and_tables, engine, get_session
-from .models import UserCreate
+from .models import User, UserCreate
 
 __all__ = [
     "app",
-    "cli",
-    "engine",
-    "settings",
-    "UserCreate",
     "User",
-    "get_session",
+    "UserCreate",
+    "cli",
+    "settings",
     "create_db_and_tables",
+    "engine",
+    "get_session",
 ]

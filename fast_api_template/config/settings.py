@@ -1,12 +1,16 @@
 """Application settings and configuration."""
 
+import os
 from typing import List, Optional, Union
 
 from dynaconf import Dynaconf, Validator
 
+# Get the settings file path from environment or use default
+settings_file = os.getenv("FAST_API_TEMPLATE_SETTINGS_FILE", "config.toml")
+
 settings = Dynaconf(
     envvar_prefix="FAST_API_TEMPLATE",
-    settings_files=["config.toml", ".secrets.toml", "default.toml"],
+    settings_files=["config.toml", ".secrets.toml", "default.toml", settings_file],
     environments=True,
     load_dotenv=True,
     validators=[
@@ -29,6 +33,8 @@ settings = Dynaconf(
         Validator("jwt.algorithm", default="HS256"),
         Validator("jwt.access_token_expire_minutes", default=30),
         Validator("jwt.refresh_token_expire_days", default=7),
+        # Demo user settings
+        Validator("demo_user.password_hash", required=True),
         # Cloud settings
         Validator("cloud.provider", default="local"),
         Validator("cloud.aws.region", default="us-east-1"),
@@ -40,6 +46,10 @@ settings = Dynaconf(
         Validator("cloud.local.storage_path", default="local_storage"),
     ],
 )
+
+# For type checking
+DATABASE_URL: str = settings.database.url
+DATABASE_ECHO: bool = settings.database.echo
 
 
 # Type hints for settings
