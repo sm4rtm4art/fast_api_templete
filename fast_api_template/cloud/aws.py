@@ -1,6 +1,6 @@
 """AWS cloud service implementation."""
 
-from typing import Optional, cast
+from typing import Dict, Optional, cast
 
 import boto3
 import redis
@@ -13,6 +13,34 @@ from fast_api_template.cloud.cloud_service_interface import CloudService
 class AWSCloudService(CloudService):
     """AWS cloud service implementation."""
 
+    def get_client_params(self, service_name: str) -> Dict[str, str]:
+        """Get common client parameters for AWS services.
+        
+        Args:
+            service_name: The AWS service name (e.g., 's3', 'sqs')
+            
+        Returns:
+            Dict with client parameters
+        """
+        # Get region based on service config or fall back to general region
+        region = self.config.aws_config.get("region", "us-east-1")
+        if service_name == "sqs":
+            queue_config = self.config.get_queue_config()
+            region = queue_config.get("region", region)
+        
+        # Create the client parameters
+        client_params = {
+            "service_name": service_name,
+            "region_name": region,
+        }
+
+        # Add profile only if it exists and is not None
+        profile = self.config.aws_config.get("profile")
+        if profile is not None:
+            client_params["profile_name"] = profile
+            
+        return client_params
+
     def get_storage_client(self) -> Optional[S3Client]:
         """Get AWS S3 client.
 
@@ -22,14 +50,9 @@ class AWSCloudService(CloudService):
         """
         if not self.config.aws_config:
             return None
-        return cast(
-            S3Client,
-            boto3.client(  # type: ignore
-                service_name="s3",
-                region_name=self.config.aws_config.get("region", "us-east-1"),
-                profile_name=self.config.aws_config.get("profile"),
-            ),
-        )
+
+        client_params = self.get_client_params("s3")
+        return cast(S3Client, boto3.client(**client_params))
 
     def get_cache_client(self) -> Optional[redis.Redis]:
         """Get AWS ElastiCache client.
@@ -59,11 +82,6 @@ class AWSCloudService(CloudService):
         queue_config = self.config.get_queue_config()
         if queue_config["type"] != "sqs":
             return None
-        return cast(
-            SQSClient,
-            boto3.client(  # type: ignore
-                service_name="sqs",
-                region_name=queue_config.get("region", self.config.aws_config.get("region", "us-east-1")),
-                profile_name=self.config.aws_config.get("profile"),
-            ),
-        )
+
+        client_params = self.get_client_params("sqs")
+        return cast(SQSClient, boto3.client(**client_params))
