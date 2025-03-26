@@ -107,9 +107,7 @@ def test_provider_dependencies(provider: str, modules: List[str]) -> None:
             missing.append(f"{module} - {error}")
 
     if missing:
-        pytest.fail(
-            f"Missing or broken dependencies for {provider}: {', '.join(missing)}"
-        )
+        pytest.fail(f"Missing or broken dependencies for {provider}: {', '.join(missing)}")
 
 
 def test_cloud_service_imports() -> None:
@@ -143,7 +141,8 @@ def test_optional_dependencies() -> None:
     """
     # Check if running with cloud-test dependencies
     has_deps = all(
-        imp[0] for imp in [
+        imp[0]
+        for imp in [
             import_module("moto"),
             import_module("requests_mock"),
             import_module("redis"),
@@ -153,7 +152,4 @@ def test_optional_dependencies() -> None:
     )
 
     if not has_deps:
-        pytest.skip(
-            "Some cloud-test dependencies are missing. "
-            "Install with: pip install -e '.[cloud-test]'"
-        ) 
+        pytest.skip("Some cloud-test dependencies are missing. " "Install with: pip install -e '.[cloud-test]'")

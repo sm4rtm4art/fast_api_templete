@@ -23,8 +23,8 @@ class HetznerCloudService(CloudService):
         """
         super().__init__(config)
         hetzner_config = config.hetzner_config or {}
-        self.api_token = hetzner_config.get('api_token')
-        self.datacenter = hetzner_config.get('datacenter', 'fsn1')
+        self.api_token = hetzner_config.get("api_token")
+        self.datacenter = hetzner_config.get("datacenter", "fsn1")
 
     def get_storage_client(self) -> Optional[Any]:
         """Get the storage client for Hetzner Storage Box operations.
@@ -38,10 +38,7 @@ class HetznerCloudService(CloudService):
         # In a real implementation, this would return a Hetzner Storage Box client
         # For now, we'll return a simple HTTP session with the API token
         session = requests.Session()
-        session.headers.update({
-            'Authorization': f'Bearer {self.api_token}',
-            'Content-Type': 'application/json'
-        })
+        session.headers.update({"Authorization": f"Bearer {self.api_token}", "Content-Type": "application/json"})
         return session
 
     def get_cache_client(self) -> Optional[Any]:
@@ -63,4 +60,4 @@ class HetznerCloudService(CloudService):
         # Hetzner doesn't provide a managed message queue service directly
         # In a real implementation, this might connect to a RabbitMQ or Kafka instance
         # running on Hetzner Cloud
-        return None 
+        return None

@@ -1,0 +1,46 @@
+# Custom Cloud Provider Configuration
+# This configuration can be used for local Kubernetes clusters,
+# on-premise deployments, or other non-standard cloud providers.
+
+[cloud]
+provider = "custom"
+region = "local"       # Optional region identifier
+
+[cloud.custom]
+name = "local-k8s"     # Optional name for the custom setup
+description = "Local Kubernetes cluster with MinIO, Redis and RabbitMQ"
+
+# Storage configuration (MinIO example)
+[cloud.custom.storage]
+type = "minio"
+endpoint = "minio.local:9000"  # Local MinIO endpoint
+access_key = "@envvar('MINIO_ACCESS_KEY')"
+secret_key = "@envvar('MINIO_SECRET_KEY')"
+secure = false         # Set to true if using HTTPS
+bucket = "app-data"    # Default bucket name
+
+# Cache configuration (Redis example)
+[cloud.custom.cache]
+type = "redis"
+host = "redis.local"
+port = 6379
+password = "@envvar('REDIS_PASSWORD')"
+db = 0
+ssl = false
+
+# Queue configuration (RabbitMQ example)
+[cloud.custom.queue]
+type = "rabbitmq"
+host = "rabbitmq.local"
+port = 5672
+username = "guest"
+password = "@envvar('RABBITMQ_PASSWORD')"
+vhost = "/"
+exchange = "app-exchange"
+queue = "app-tasks"
+
+# Kubernetes configuration (if applicable)
+[cloud.custom.kubernetes]
+context = "docker-desktop"
+namespace = "app-namespace"
+kubeconfig_path = "~/.kube/config" 

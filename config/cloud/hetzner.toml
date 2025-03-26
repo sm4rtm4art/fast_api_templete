@@ -1,0 +1,33 @@
+# Hetzner Cloud Configuration
+
+[cloud]
+provider = "hetzner"
+region = "eu-central"  # Hetzner zones: fsn1 (Falkenstein), nbg1 (Nuremberg), hel1 (Helsinki)
+
+[cloud.hetzner]
+api_token = "@envvar('HETZNER_API_TOKEN')"
+datacenter = "fsn1"    # Default datacenter
+project_id = "your-hetzner-project-id"
+
+[cloud.hetzner.storage]
+box_id = "your-storage-box-id"  # Storage Box ID if using Hetzner Storage Box
+subdomain = "your-storage-subdomain"  # Subdomain for accessing Storage Box
+
+# Configuration for Redis deployed manually on Hetzner Cloud
+[cloud.hetzner.cache]
+host = "redis.internal.example.com"  # Internal hostname or IP
+port = 6379
+password = "@envvar('HETZNER_REDIS_PASSWORD')"
+
+# Configuration for RabbitMQ deployed manually on Hetzner Cloud
+[cloud.hetzner.queue]
+host = "rabbitmq.internal.example.com"  # Internal hostname or IP
+port = 5672
+username = "rabbit_user"
+password = "@envvar('HETZNER_RABBITMQ_PASSWORD')"
+vhost = "/"
+
+# Kubernetes configuration if using Hetzner Kubernetes (optional)
+[cloud.hetzner.kubernetes]
+cluster_name = "your-hetzner-k8s-cluster"
+kubeconfig_path = "~/.kube/hetzner-config" 
