@@ -1,0 +1,10 @@
+[default]
+auth.enabled = true
+auth.dependencies = []
+auth.settings = { token_expire_minutes = 30, secret_key = "@envvar('JWT_SECRET_KEY')" }
+
+[development]
+auth.settings.token_expire_minutes = 60
+
+[production]
+auth.settings.token_expire_minutes = 30
