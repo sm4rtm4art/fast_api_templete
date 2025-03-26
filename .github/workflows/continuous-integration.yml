@@ -233,11 +233,9 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          # Install test and cloud dependencies
-          uv pip install -e ".[test,lint]"
-          # Skip full cloud provider installs in CI to save time
-          uv pip install boto3 botocore redis
-          # Install cloud testing utilities needed by tests
+          # Install test dependencies and AWS dependencies (minimal cloud setup for CI)
+          uv pip install -e ".[test,lint,aws]"
+          # Install additional test dependencies for cloud modules
           uv pip install moto requests-mock docker pika
         shell: bash
 
@@ -246,11 +244,9 @@ jobs:
         run: |
           uv venv
           .\.venv\Scripts\Activate.ps1
-          # Install test and cloud dependencies
-          uv pip install -e ".[test,lint]"
-          # Skip full cloud provider installs in CI to save time
-          uv pip install boto3 botocore redis
-          # Install cloud testing utilities needed by tests
+          # Install test dependencies and AWS dependencies (minimal cloud setup for CI)
+          uv pip install -e ".[test,lint,aws]" 
+          # Install additional test dependencies for cloud modules
           uv pip install moto requests-mock docker pika
         shell: pwsh
 

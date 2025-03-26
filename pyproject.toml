@@ -190,6 +190,10 @@ ignore = [
 "tests/*.py" = [
     "B010",    # Do not call `setattr` with a constant attribute value
 ]
+# Ignore line length in docstrings for cloud modules
+"fast_api_template/cloud/*.py" = [
+    "E501",    # Line too long - more readable to keep docstrings on one line
+]
 
 [tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
