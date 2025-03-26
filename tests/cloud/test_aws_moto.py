@@ -12,6 +12,7 @@ from moto import mock_aws
 
 from fast_api_template.cloud.cloud_service_provider import CloudServiceProvider
 from fast_api_template.config.cloud import CloudConfig
+from stubs.boto_stubs import S3ResponseTypeDef, SQSResponseTypeDef
 
 
 class TestSettings:
@@ -120,7 +121,7 @@ class TestAWSMoto:
         s3_client.put_object(Bucket=bucket_name, Key="test-object.txt", Body=test_data)
 
         # Get the object and verify its content
-        response = s3_client.get_object(Bucket=bucket_name, Key="test-object.txt")
+        response: S3ResponseTypeDef = s3_client.get_object(Bucket=bucket_name, Key="test-object.txt")
         content = response["Body"].read()
         assert content == test_data
 
@@ -189,20 +190,22 @@ class TestAWSMoto:
         queue_client.send_message(QueueUrl=queue_url, MessageBody=message)
 
         # Receive the message
-        response = queue_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1)
+        response: SQSResponseTypeDef = queue_client.receive_message(
+            QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1
+        )
 
         # Verify message content
-        assert "Messages" in response  # type: ignore
-        assert len(response["Messages"]) == 1  # type: ignore
-        assert response["Messages"][0]["Body"] == message  # type: ignore
+        assert "Messages" in response
+        assert len(response["Messages"]) == 1
+        assert response["Messages"][0]["Body"] == message
 
         # Delete the message
-        receipt_handle = response["Messages"][0]["ReceiptHandle"]  # type: ignore
+        receipt_handle = response["Messages"][0]["ReceiptHandle"]
         queue_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
         # Verify queue is empty
         response = queue_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1)
-        assert "Messages" not in response  # type: ignore
+        assert "Messages" not in response
 
     @mock_aws
     def test_sqs_with_fixture(self, mocker: Any, aws_config_with_sqs_queue: CloudConfig) -> None:
@@ -236,12 +239,14 @@ class TestAWSMoto:
         queue_client.send_message(QueueUrl=queue_url, MessageBody=message)
 
         # Receive the message
-        response = queue_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1)
+        response: SQSResponseTypeDef = queue_client.receive_message(
+            QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1
+        )
 
         # Verify message content
-        assert "Messages" in response  # type: ignore
-        assert len(response["Messages"]) == 1  # type: ignore
-        assert response["Messages"][0]["Body"] == message  # type: ignore
+        assert "Messages" in response
+        assert len(response["Messages"]) == 1
+        assert response["Messages"][0]["Body"] == message
 
     @pytest.mark.parametrize(
         "region,bucket_name",
@@ -280,7 +285,7 @@ class TestAWSMoto:
         s3_client.put_object(Bucket=bucket_name, Key="test-object.txt", Body=test_data)
 
         response = s3_client.get_object(Bucket=bucket_name, Key="test-object.txt")
-        content = response["Body"].read()  # type: ignore
+        content = response["Body"].read()
         assert content == test_data
 
     @mock_aws
@@ -310,4 +315,4 @@ class TestAWSMoto:
         response = queue_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1)
 
         # Verify no messages are returned
-        assert "Messages" not in response  # type: ignore
+        assert "Messages" not in response

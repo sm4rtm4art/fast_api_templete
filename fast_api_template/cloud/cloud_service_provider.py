@@ -7,7 +7,9 @@ instantiating the correct cloud service implementation based on configuration.
 from fast_api_template.cloud.aws import AWSCloudService
 from fast_api_template.cloud.azure import AzureCloudService
 from fast_api_template.cloud.cloud_service_interface import CloudService
+from fast_api_template.cloud.custom import CustomCloudService
 from fast_api_template.cloud.gcp import GCPCloudService
+from fast_api_template.cloud.hetzner import HetznerCloudService
 from fast_api_template.cloud.local import LocalCloudService
 from fast_api_template.config.cloud import CloudConfig, CloudProvider
 
@@ -35,5 +37,9 @@ class CloudServiceProvider:
             return GCPCloudService(config)
         elif config.provider == CloudProvider.AZURE:
             return AzureCloudService(config)
+        elif config.provider == CloudProvider.HETZNER:
+            return HetznerCloudService(config)
+        elif config.provider == CloudProvider.CUSTOM:
+            return CustomCloudService(config)
         else:
             return LocalCloudService(config)

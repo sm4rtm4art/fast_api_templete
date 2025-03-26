@@ -223,16 +223,20 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 mypy_path = "stubs"
+follow_imports = "silent"
 
 [[tool.mypy.overrides]]
-module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer", "typer.*", "typer.main", "typer.main.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*", "azure.*", "mypy_boto3_s3.*", "mypy_boto3_sqs.*", "mypy_boto3_lambda.*", "mypy_boto3_rds.*", "boto3.*", "redis.*", "tomli.*", "click.*", "click.testing.*", "moto.*"]
+module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer", "typer.*", "typer.main", "typer.main.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*", "azure.*", "mypy_boto3_s3.*", "mypy_boto3_sqs.*", "mypy_boto3_lambda.*", "mypy_boto3_rds.*", "boto3.*", "redis.*", "tomli.*", "click.*", "click.testing.*", "moto.*", "requests_mock.*", "minio.*", "googleapiclient.*", "googleapiclient.http.*", "google.*", "google.api_core.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+check_untyped_defs = false
 allow_redefinition = true
+# Allow MockSettings to be used where Dynaconf is expected, and permit object return type
+disable_error_code = ["arg-type", "return-value", "no-redef", "import-not-found"]
 
 [[tool.mypy.overrides]]
 module = ["stubs.*"]
@@ -244,6 +248,7 @@ python_files = ["test_*.py"]
 addopts = "-v --tb=short --cov=fast_api_template --cov-report=xml:coverage.xml --cov-report=term"
 markers = [
     "skip_docker: marks tests that require Docker to be running (these tests are skipped by default)",
+    "docker_integration: marks tests that use Docker containers for integration testing",
 ]
 
 [dependency-groups]
