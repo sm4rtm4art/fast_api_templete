@@ -36,6 +36,8 @@ dependencies = [
     "mypy-boto3-sqs>=1.37.0",
     "types-redis>=4.6.0.20241004",
     "ecdsa>=0.19.1",
+    "types-boto3>=1.37.18",
+    "types-requests>=2.32.0.20250306",
 ]
 
 [project.optional-dependencies]
@@ -47,7 +49,22 @@ test = [
     "pytest-mock>=3.12.0",
     "httpx>=0.26.0",
     "coverage>=7.3.2",
+    "requests-mock>=1.9.0",
+    "moto>=4.0.0",  # For AWS mocking
+    "docker>=6.0.0",  # For Docker-based integration tests
 ]
+
+cloud-test = [
+    "moto>=4.0.0",      # AWS mocking
+    "requests-mock>=1.9.0",  # General HTTP API mocking
+    "redis>=4.0.0",     # For Redis tests
+    "pika>=1.2.0",      # For RabbitMQ tests
+    "minio>=7.0.0",     # For MinIO/S3-compatible storage tests
+    "docker>=6.0.0",    # For Docker-based tests
+    "google-api-python-client>=2.100.0",  # For GCP API mocking
+    # If/when mock-gcp is available on PyPI, it would be added here
+]
+
 lint = [
     "mypy==1.15.0",
     "vulture==2.14",
@@ -57,6 +74,7 @@ lint = [
     "types-requests==2.32.0.20250306",
     "types-redis==4.6.0.20241004",
     "types-boto3==1.37.18",
+    "types-docker==7.1.0.20241229",
     "boto3-stubs==1.37.18",
     "mypy-boto3-s3==1.37.0",
     "mypy-boto3-sqs==1.37.0",
@@ -160,6 +178,14 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Ignore B008 for FastAPI's Depends function
 "**/routes/*.py" = ["B008"]
+# Ignore specific issues in test files
+"tests/cloud/*.py" = [
+    "E501",    # Line too long - tests often have longer descriptive names
+    "F401",    # Unused imports - needed for fixtures and context
+    "F811",    # Redefined name - often happens with fixtures
+    "E402",    # Module level import not at top of file
+    "F841",    # Local variable assigned but never used - common in test mocks
+]
 
 [tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
@@ -198,17 +224,53 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 mypy_path = "stubs"
+follow_imports = "silent"
+namespace_packages = true
+# Add explicit package to fix import conflict issues
+explicit_package_bases = true
+# Exclude stub files from main check to avoid duplicate module errors
+exclude = ["stubs/.*"]
 
 [[tool.mypy.overrides]]
-module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer", "typer.*", "typer.main", "typer.main.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*", "azure.*", "mypy_boto3_s3.*", "mypy_boto3_sqs.*", "mypy_boto3_lambda.*", "mypy_boto3_rds.*", "boto3.*", "redis.*", "tomli.*", "click.*", "click.testing.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["boto3", "boto3.*", "botocore", "botocore.*"]
-ignore_missing_imports = true
+module = ["stubs.*"]
+ignore_errors = true
 follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer", "typer.*", "typer.main", "typer.main.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*", "azure.*", "mypy_boto3_s3.*", "mypy_boto3_sqs.*", "mypy_boto3_lambda.*", "mypy_boto3_rds.*", "boto3.*", "redis.*", "tomli.*", "click.*", "click.testing.*", "moto.*", "requests_mock.*", "minio.*", "googleapiclient.*", "googleapiclient.http.*", "google.*", "google.api_core.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+allow_redefinition = true
+# Allow MockSettings to be used where Dynaconf is expected, and permit object return type
+disable_error_code = ["arg-type", "return-value", "no-redef", "import-not-found"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short --cov=fast_api_template --cov-report=xml:coverage.xml --cov-report=term"
+markers = [
+    "skip_docker: marks tests that require Docker to be running (these tests are skipped by default)",
+    "integration: marks tests that require integration with external services",
+    "docker_integration: marks tests that use Docker containers for integration testing",
+]
+
+[dependency-groups]
+dev = [
+    "minio>=7.2.15",
+    "pika>=1.3.2",
+]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["fast_api_template", "tests"]
+exclude = ["*/.venv/*", "*/.git/*", "*/docs/*", "*/templates/*", "*/stubs/*"]
+ignore_names = ["setUp", "tearDown", "test_*"]
+ignore_decorators = ["@pytest.fixture", "@pytest.mark.*", "@property"]
+# The whitelist file entries in .vulture.py are intentional
+make_whitelist = false
+sort_by_size = true

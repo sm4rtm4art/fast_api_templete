@@ -1,4 +1,10 @@
-"""Type stubs for boto3."""
+"""Type stubs for boto3 package.
+
+These stubs extend the standard boto3-stubs package with project-specific types.
+"""
+
+# Re-export boto_stubs types
+from stubs.boto_stubs import *  # noqa
 
 from typing import Any, Literal, Optional, Union, overload
 

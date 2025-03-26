@@ -1,6 +1,7 @@
 # Modern FastAPI Template
 
-[![CI](https://github.com/sm4rtm4art/FAST_API_TEMPLATE/actions/workflows/main.yml/badge.svg)](https://github.com/sm4rtm4art/FAST_API_TEMPLATE/actions/workflows/main.yml)
+[![CI](https://github.com/sm4rtm4art/fast_api_templete/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/sm4rtm4art/fast_api_templete/actions/workflows/continuous-integration.yml)
+[![codecov](https://codecov.io/gh/sm4rtm4art/fast_api_templete/branch/main/graph/badge.svg)](https://codecov.io/gh/sm4rtm4art/fast_api_templete)
 
 A modern FastAPI project template featuring:
 

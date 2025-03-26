@@ -12,6 +12,8 @@ class CloudProvider(str, Enum):
     AWS = "aws"
     GCP = "gcp"
     AZURE = "azure"
+    HETZNER = "hetzner"
+    CUSTOM = "custom"
     LOCAL = "local"
 
 
@@ -24,11 +26,12 @@ class CloudConfig:
         self.region = settings.get("cloud.region", "us-east-1")
         self.project_id = settings.get("cloud.project_id")
         self.tenant_id = settings.get("cloud.tenant_id")
+        self.custom_config = settings.get("cloud.custom", {})
 
     @property
     def is_cloud(self) -> bool:
         """Check if running in cloud environment."""
-        return self.provider != CloudProvider.LOCAL
+        return self.provider not in [CloudProvider.LOCAL, CloudProvider.CUSTOM]
 
     @property
     def aws_config(self) -> Optional[dict]:
@@ -63,9 +66,27 @@ class CloudConfig:
             "resource_group": self.settings.get("cloud.azure.resource_group"),
         }
 
+    @property
+    def hetzner_config(self) -> Optional[dict]:
+        """Get Hetzner specific configuration."""
+        if self.provider != CloudProvider.HETZNER:
+            return None
+        return {
+            "api_token": self.settings.get("cloud.hetzner.api_token"),
+            "datacenter": self.settings.get("cloud.hetzner.datacenter", "fsn1"),
+            "project_id": self.settings.get("cloud.hetzner.project_id"),
+        }
+
+    @property
+    def custom_provider_config(self) -> Optional[dict]:
+        """Get custom provider configuration."""
+        if self.provider != CloudProvider.CUSTOM:
+            return None
+        return self.custom_config
+
     def get_storage_config(self) -> dict:
         """Get cloud storage configuration based on provider."""
-        if not self.is_cloud:
+        if not self.is_cloud and self.provider != CloudProvider.CUSTOM:
             return {"type": "local"}
 
         if self.provider == CloudProvider.AWS:
@@ -86,11 +107,20 @@ class CloudConfig:
                 "container": self.settings.get("cloud.azure.storage.container"),
                 "account_name": self.settings.get("cloud.azure.storage.account_name"),
             }
+        elif self.provider == CloudProvider.HETZNER:
+            return {
+                "type": "hetzner",
+                "storage_box": self.settings.get("cloud.hetzner.storage.box_id"),
+                "datacenter": self.settings.get("cloud.hetzner.datacenter", "fsn1"),
+                "subdomain": self.settings.get("cloud.hetzner.storage.subdomain"),
+            }
+        elif self.provider == CloudProvider.CUSTOM:
+            return self.settings.get("cloud.custom.storage", {})
         return {"type": "local"}
 
     def get_cache_config(self) -> dict:
         """Get cloud cache configuration based on provider."""
-        if not self.is_cloud:
+        if not self.is_cloud and self.provider != CloudProvider.CUSTOM:
             return {"type": "local"}
 
         if self.provider == CloudProvider.AWS:
@@ -111,11 +141,22 @@ class CloudConfig:
                 "name": self.settings.get("cloud.azure.cache.name"),
                 "resource_group": self.settings.get("cloud.azure.resource_group"),
             }
+        elif self.provider == CloudProvider.HETZNER:
+            # Hetzner doesn't provide a managed Redis service directly
+            # This configuration would be for a self-hosted Redis on Hetzner Cloud
+            return {
+                "type": "redis",
+                "host": self.settings.get("cloud.hetzner.cache.host"),
+                "port": self.settings.get("cloud.hetzner.cache.port", 6379),
+                "password": self.settings.get("cloud.hetzner.cache.password"),
+            }
+        elif self.provider == CloudProvider.CUSTOM:
+            return self.settings.get("cloud.custom.cache", {})
         return {"type": "local"}
 
     def get_queue_config(self) -> dict:
         """Get cloud queue configuration based on provider."""
-        if not self.is_cloud:
+        if not self.is_cloud and self.provider != CloudProvider.CUSTOM:
             return {"type": "local"}
 
         if self.provider == CloudProvider.AWS:
@@ -137,4 +178,17 @@ class CloudConfig:
                 "namespace": self.settings.get("cloud.azure.servicebus.namespace"),
                 "queue": self.settings.get("cloud.azure.servicebus.queue"),
             }
+        elif self.provider == CloudProvider.HETZNER:
+            # Hetzner doesn't provide a managed message queue service directly
+            # This configuration would be for a self-hosted RabbitMQ on Hetzner Cloud
+            return {
+                "type": "rabbitmq",
+                "host": self.settings.get("cloud.hetzner.queue.host"),
+                "port": self.settings.get("cloud.hetzner.queue.port", 5672),
+                "username": self.settings.get("cloud.hetzner.queue.username", "guest"),
+                "password": self.settings.get("cloud.hetzner.queue.password", "guest"),
+                "vhost": self.settings.get("cloud.hetzner.queue.vhost", "/"),
+            }
+        elif self.provider == CloudProvider.CUSTOM:
+            return self.settings.get("cloud.custom.queue", {})
         return {"type": "local"}

@@ -1,0 +1,117 @@
+name: Cloud Provider Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fast_api_template/cloud/**"
+      - "tests/cloud/**"
+      - "docs/testing/cloud_testing.md"
+      - "pyproject.toml" # Only because it contains cloud dependencies
+  pull_request:
+    branches: [main]
+    paths:
+      - "fast_api_template/cloud/**"
+      - "tests/cloud/**"
+      - "docs/testing/cloud_testing.md"
+      - "pyproject.toml" # Only because it contains cloud dependencies
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  test-cloud-providers:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    services:
+      # Add Docker service for the integration tests
+      docker:
+        image: docker:dind
+        options: --privileged
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Needed to check file changes
+
+      # Check if changes are cloud-related when triggered by pyproject.toml
+      - name: Check if pyproject.toml changes affect cloud dependencies
+        id: check_pyproject
+        if: contains(github.event.head_commit.modified, 'pyproject.toml')
+        run: |
+          # Only continue if the changes are in cloud-related sections
+          if git diff HEAD^ HEAD pyproject.toml | grep -q "cloud\|azure\|aws\|gcp"; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+          else
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Python ${{ matrix.python-version }}
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install uv
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          uv pip install --system ".[cloud-test,dev]"
+
+      - name: Lint with Ruff
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          ruff check tests/cloud/
+          ruff format --check tests/cloud/
+
+      - name: Type check with mypy
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          mypy tests/cloud/
+
+      - name: Test AWS provider with Moto
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          pytest tests/cloud/test_aws_moto.py -v
+
+      - name: Test Azure provider with transport mocking
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          pytest tests/cloud/test_azure_transport_mock.py -v
+          pytest tests/cloud/test_azure_mock.py -v
+
+      - name: Test GCP provider
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          pytest tests/cloud/test_gcp_mock.py -v
+
+      - name: Test Hetzner provider
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          pytest tests/cloud/test_hetzner_mock.py -v
+
+      - name: Test custom provider
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          pytest tests/cloud/test_custom_provider_mock.py -v
+
+      - name: Run cloud test utilities
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          pytest tests/cloud/test_cloud_base.py -v
+          pytest tests/cloud/test_cloud_config.py -v
+          pytest tests/cloud/test_cloud_service_provider.py -v
+          pytest tests/cloud/test_dependencies.py -v
+
+      # Skip the Docker integration tests on GitHub Actions as they require
+      # complex container orchestration that may be challenging in the CI environment
+      # - name: Test Docker integration
+      #   run: |
+      #     pytest tests/cloud/test_docker_integration.py -v

@@ -1,0 +1,143 @@
+name: Cloud Integration Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fast_api_template/cloud/**"
+      - "tests/cloud/**"
+      - "docs/testing/cloud_testing.md"
+      - "pyproject.toml" # Only because it contains cloud dependencies
+  pull_request:
+    branches: [main]
+    paths:
+      - "fast_api_template/cloud/**"
+      - "tests/cloud/**"
+      - "docs/testing/cloud_testing.md"
+      - "pyproject.toml" # Only because it contains cloud dependencies
+  schedule:
+    # Run weekly to catch dependency drift issues
+    - cron: "0 0 * * 0"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    outputs:
+      run_tests: ${{ steps.check_pyproject.outputs.run_tests }}
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Needed to check file changes
+
+      # Check if changes are cloud-related when triggered by pyproject.toml
+      - name: Check if pyproject.toml changes affect cloud dependencies
+        id: check_pyproject
+        if: contains(github.event.head_commit.modified, 'pyproject.toml')
+        run: |
+          # Only continue if the changes are in cloud-related sections
+          if git diff HEAD^ HEAD pyproject.toml | grep -q "cloud\|azure\|aws\|gcp"; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+          else
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Python ${{ matrix.python-version }}
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install uv
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          uv pip install --system ".[cloud-test,dev]"
+
+      - name: Verify cloud dependencies
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          # Run the dependency verification test first
+          pytest tests/cloud/test_dependencies.py -v
+
+      - name: Check code quality
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          ruff check fast_api_template/cloud/ tests/cloud/
+          mypy fast_api_template/cloud/ tests/cloud/
+
+      - name: Run all cloud provider tests
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        run: |
+          # Run all provider tests in parallel
+          pytest tests/cloud/ -v -k "not test_docker_integration" --cov=fast_api_template.cloud --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        if: steps.check_pyproject.outputs.run_tests != 'false'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: cloud-tests
+          name: cloud-coverage
+          fail_ci_if_error: false
+
+  # Optional job that runs the Docker integration tests if dispatch workflow is run with specific inputs
+  docker-integration:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'workflow_dispatch' || needs.build-and-test.outputs.run_tests == 'true'
+
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Needed to check file changes
+
+      # Reuse the same condition logic as the main job
+      - name: Check if pyproject.toml changes affect cloud dependencies
+        id: check_pyproject
+        if: contains(github.event.head_commit.modified, 'pyproject.toml')
+        run: |
+          # Only continue if the changes are in cloud-related sections
+          if git diff HEAD^ HEAD pyproject.toml | grep -q "cloud\|azure\|aws\|gcp"; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+          else
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Python 3.12
+        if: steps.check_pyproject.outputs.run_tests != 'false' || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install uv
+        if: steps.check_pyproject.outputs.run_tests != 'false' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        if: steps.check_pyproject.outputs.run_tests != 'false' || github.event_name == 'workflow_dispatch'
+        run: |
+          uv pip install --system ".[cloud-test,dev]"
+
+      - name: Run Docker integration tests
+        if: steps.check_pyproject.outputs.run_tests != 'false' || github.event_name == 'workflow_dispatch'
+        run: |
+          pytest tests/cloud/test_docker_integration.py -v

@@ -251,6 +251,13 @@ jobs:
           file: ./coverage.xml
           flags: unittests
           fail_ci_if_error: false
+          verbose: true
+          codecov_yml_path: ./codecov.yml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          name: codecov-umbrella
+          override_branch: ${{ github.ref_name }}
+          override_pr: ${{ github.event.pull_request.number }}
+          override_commit: ${{ github.sha }}
 
   docker:
     needs: [test]
