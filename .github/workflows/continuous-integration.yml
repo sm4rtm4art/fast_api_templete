@@ -251,7 +251,7 @@ jobs:
           # Skip full cloud provider installs in CI to save time
           uv pip install boto3 botocore
           # Install cloud testing utilities needed by tests
-          uv pip install moto requests-mock
+          uv pip install moto requests-mock docker
         shell: pwsh
 
       - name: Test with pytest (Linux/macOS)

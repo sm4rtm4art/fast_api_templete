@@ -186,6 +186,10 @@ ignore = [
     "E402",    # Module level import not at top of file
     "F841",    # Local variable assigned but never used - common in test mocks
 ]
+# Ignore setattr with constant attribute value in tests (common testing pattern)
+"tests/*.py" = [
+    "B010",    # Do not call `setattr` with a constant attribute value
+]
 
 [tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
