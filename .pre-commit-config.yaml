@@ -26,6 +26,7 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
+        exclude: "stubs/.*"
         additional_dependencies:
           [
             types-requests,
@@ -34,6 +35,7 @@ repos:
             types-passlib,
             types-redis,
             types-boto3,
+            types-docker,
             boto3-stubs,
             mypy-boto3-s3,
             mypy-boto3-sqs,
@@ -44,7 +46,7 @@ repos:
     rev: v2.10
     hooks:
       - id: vulture
-        args: [fast_api_template, tests, --min-confidence=80, --exclude=__init__.py]
+        args: ["--min-confidence=80", "--whitelist", ".vulture.py"]
         additional_dependencies: []
         always_run: false
 
