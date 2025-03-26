@@ -158,11 +158,12 @@ def rabbitmq_connection(rabbitmq_container) -> Generator[pika.BlockingConnection
         pytest.skip(f"Could not connect to RabbitMQ: {e}")
     finally:
         # Cleanup
-        if connection and hasattr(connection, "is_open") and connection.is_open:  # type: ignore
-            try:
+        try:
+            # Try to close any existing connection
+            if connection and hasattr(connection, "is_open") and connection.is_open:
                 connection.close()
-            except Exception:
-                pass  # Best effort cleanup
+        except Exception:
+            pass  # Ignore connection errors
 
 
 @pytest.fixture
@@ -276,7 +277,7 @@ class TestDockerIntegration:
         redis_client.delete(key)
 
     @pytest.mark.skip_docker
-    def test_rabbitmq_operations(
+    def test_rabbitmq_operations(  # noqa: C901
         self,
         rabbitmq_channel: Any,  # Using Any for pika channel type
     ):

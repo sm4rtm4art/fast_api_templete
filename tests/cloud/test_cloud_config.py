@@ -37,7 +37,7 @@ def aws_settings():
                     "role_arn": "arn:aws:iam::123456789012:role/test-role",
                     "s3": {"bucket": "test-bucket"},
                     "elasticache": {"endpoint": "test.cache.amazonaws.com", "port": 6379},
-                    "sqs": {"queue_url": ("https://sqs.us-west-2.amazonaws.com/" "123456789012/test-queue")},
+                    "sqs": {"queue_url": ("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue")},
                 },
             }
         }

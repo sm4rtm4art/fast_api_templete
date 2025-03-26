@@ -105,8 +105,7 @@ class TestAzureMock:
 
         # Define a connection string
         connection_string = (
-            "DefaultEndpointsProtocol=https;AccountName=teststorage;"
-            "AccountKey=testkey;EndpointSuffix=core.windows.net"
+            "DefaultEndpointsProtocol=https;AccountName=teststorage;AccountKey=testkey;EndpointSuffix=core.windows.net"
         )
 
         # Set test Azure config with connection string
@@ -211,8 +210,7 @@ class TestAzureMock:
 
         # Define connection string
         connection_string = (
-            "DefaultEndpointsProtocol=https;AccountName=teststorage;"
-            "AccountKey=testkey;EndpointSuffix=core.windows.net"
+            "DefaultEndpointsProtocol=https;AccountName=teststorage;AccountKey=testkey;EndpointSuffix=core.windows.net"
         )
 
         # Set test Azure config with connection string
@@ -263,8 +261,7 @@ class TestAzureMock:
 
         # Create client with mock transport
         connection_string = (
-            "DefaultEndpointsProtocol=https;AccountName=teststorage;"
-            "AccountKey=testkey;EndpointSuffix=core.windows.net"
+            "DefaultEndpointsProtocol=https;AccountName=teststorage;AccountKey=testkey;EndpointSuffix=core.windows.net"
         )
 
         # Set test Azure config with connection string

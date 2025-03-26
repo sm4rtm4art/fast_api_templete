@@ -46,7 +46,7 @@ repos:
     rev: v2.10
     hooks:
       - id: vulture
-        args: ["--min-confidence=80", "--whitelist", ".vulture.py"]
+        args: ["--min-confidence=80"]
         additional_dependencies: []
         always_run: false
 

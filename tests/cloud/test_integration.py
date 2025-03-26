@@ -121,7 +121,7 @@ class TestCloudProviderIntegration:
         # Verify that Session was created with correct headers
         assert client is mock_session_instance
         mock_session_instance.headers.update.assert_called_once_with(
-            {"Authorization": f'Bearer {cloud_test_env["HETZNER_API_TOKEN"]}', "Content-Type": "application/json"}
+            {"Authorization": f"Bearer {cloud_test_env['HETZNER_API_TOKEN']}", "Content-Type": "application/json"}
         )
 
     @patch("minio.Minio")

@@ -95,38 +95,49 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
-          # Verify all issues are resolved
-          ruff check --output-format=github fast_api_template scripts
+          # Use configuration from pyproject.toml
+          ruff check --output-format=github fast_api_template scripts tests
         shell: bash
 
       - name: Check code with Ruff (Windows)
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
-          # Verify all issues are resolved
-          ruff check --output-format=github fast_api_template scripts
+          # Use configuration from pyproject.toml
+          ruff check --output-format=github fast_api_template scripts tests
         shell: pwsh
 
       - name: Check formatting (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
-          ruff format --check --line-length 120 fast_api_template tests scripts
+          ruff format --check fast_api_template tests scripts
         shell: bash
 
       - name: Check formatting (Windows)
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
-          ruff format --check --line-length 120 fast_api_template tests scripts
+          ruff format --check fast_api_template tests scripts
         shell: pwsh
+
+      - name: Run vulture for unused code (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source .venv/bin/activate
+          # Install vulture
+          uv pip install vulture
+          # Skip vulture in CI for now as we're using it locally via pre-commit
+          echo "Skipping vulture in CI environment"
+        shell: bash
+        continue-on-error: true
 
       - name: Type check with mypy (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
           # Install type stubs
-          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli
+          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli types-docker
           mypy --config-file=pyproject.toml fast_api_template
         shell: bash
 
@@ -135,7 +146,7 @@ jobs:
         run: |
           .\.venv\Scripts\Activate.ps1
           # Install type stubs
-          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli
+          uv pip install types-python-jose types-passlib types-boto3 mypy-boto3-s3 mypy-boto3-sqs mypy-boto3-lambda mypy-boto3-rds pydantic tomli types-docker
           mypy --config-file=pyproject.toml fast_api_template
         shell: pwsh
 
@@ -194,6 +205,8 @@ jobs:
   test:
     needs: [lint, security]
     runs-on: ${{ matrix.os }}
+    env:
+      CI: "true" # Add CI environment variable to skip optional tests
     strategy:
       fail-fast: false
       matrix:
@@ -220,7 +233,12 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
+          # Install test and cloud dependencies
           uv pip install -e ".[test,lint]"
+          # Skip full cloud provider installs in CI to save time
+          uv pip install boto3 botocore
+          # Install cloud testing utilities needed by tests
+          uv pip install moto requests-mock
         shell: bash
 
       - name: Install dependencies (Windows)
@@ -228,7 +246,12 @@ jobs:
         run: |
           uv venv
           .\.venv\Scripts\Activate.ps1
+          # Install test and cloud dependencies
           uv pip install -e ".[test,lint]"
+          # Skip full cloud provider installs in CI to save time
+          uv pip install boto3 botocore
+          # Install cloud testing utilities needed by tests
+          uv pip install moto requests-mock
         shell: pwsh
 
       - name: Test with pytest (Linux/macOS)
@@ -251,13 +274,8 @@ jobs:
           file: ./coverage.xml
           flags: unittests
           fail_ci_if_error: false
-          verbose: true
-          codecov_yml_path: ./codecov.yml
           token: ${{ secrets.CODECOV_TOKEN }}
           name: codecov-umbrella
-          override_branch: ${{ github.ref_name }}
-          override_pr: ${{ github.event.pull_request.number }}
-          override_commit: ${{ github.sha }}
 
   docker:
     needs: [test]

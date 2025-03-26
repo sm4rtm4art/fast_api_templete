@@ -129,7 +129,7 @@ class AzureMockTransport:
         self.requests.append((request, kwargs))
 
         # Check if we have a pre-defined response for this request
-        for name, response in self.responses.items():
+        for _name, response in self.responses.items():
             if hasattr(response, "request") and response.request and response.request.url in request.url:
                 return response
 
