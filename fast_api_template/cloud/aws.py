@@ -1,6 +1,6 @@
 """AWS cloud service implementation."""
 
-from typing import Any, Dict, Optional, cast
+from typing import Dict, Optional, cast
 
 import boto3
 import redis
