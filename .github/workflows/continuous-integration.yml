@@ -236,9 +236,9 @@ jobs:
           # Install test and cloud dependencies
           uv pip install -e ".[test,lint]"
           # Skip full cloud provider installs in CI to save time
-          uv pip install boto3 botocore
+          uv pip install boto3 botocore redis
           # Install cloud testing utilities needed by tests
-          uv pip install moto requests-mock
+          uv pip install moto requests-mock docker pika
         shell: bash
 
       - name: Install dependencies (Windows)
@@ -249,9 +249,9 @@ jobs:
           # Install test and cloud dependencies
           uv pip install -e ".[test,lint]"
           # Skip full cloud provider installs in CI to save time
-          uv pip install boto3 botocore
+          uv pip install boto3 botocore redis
           # Install cloud testing utilities needed by tests
-          uv pip install moto requests-mock docker
+          uv pip install moto requests-mock docker pika
         shell: pwsh
 
       - name: Test with pytest (Linux/macOS)

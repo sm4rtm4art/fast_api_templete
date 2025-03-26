@@ -3,9 +3,14 @@
 from typing import Dict, Optional, cast
 
 import boto3
-import redis
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sqs.client import SQSClient
+
+try:
+    import redis
+except ImportError:
+    # Optional dependency, will be handled gracefully in methods
+    redis = None
 
 from fast_api_template.cloud.cloud_service_interface import CloudService
 
@@ -56,17 +61,20 @@ class AWSCloudService(CloudService):
         client_params = self.get_client_params("s3")
         return cast(S3Client, boto3.client(**client_params))  # type: ignore
 
-    def get_cache_client(self) -> Optional[redis.Redis]:
+    def get_cache_client(self) -> Optional[object]:
         """Get AWS ElastiCache client.
 
         Returns:
             Optional[Redis]: The Redis client if ElastiCache config is
             available, None otherwise.
         """
+        if redis is None:
+            return None
+            
         cache_config = self.config.get_cache_config()
         if not cache_config or cache_config.get("type") != "elasticache":
             return None
-        return redis.Redis(
+        return redis.Redis(  # type: ignore
             host=cache_config["endpoint"],
             port=cache_config["port"],
             decode_responses=True,
