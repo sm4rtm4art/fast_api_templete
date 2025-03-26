@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 from sqlmodel import Field, SQLModel
 
 
@@ -18,7 +18,7 @@ class Content(SQLModel):
     slug: str = Field(default=None)
     text: str
     published: bool = False
-    created_time: str = Field(default_factory=lambda: datetime.now().isoformat())
+    created_time: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     tags: str = Field(default="")
     user_id: int | None = Field(foreign_key="user.id")
 
@@ -52,15 +52,13 @@ class ContentResponse(BaseModel):
 class ContentIncoming(BaseModel):
     """This is the serializer used for POST/PATCH requests"""
 
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
+
     title: str | None
     text: str | None
     published: bool | None = False
     tags: list[str] | str | None
     user_id: int | None = None
-
-    class Config:
-        extra = Extra.allow
-        arbitrary_types_allowed = True
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # tags to database representation

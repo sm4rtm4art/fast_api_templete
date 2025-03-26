@@ -1,7 +1,7 @@
 """User models module."""
 
 from collections.abc import Callable, Generator
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel
@@ -50,7 +50,7 @@ class User(SQLModel, table=True):
     is_superuser: bool = Field(default=False)
     is_admin: bool = Field(default=False)
     disabled: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @classmethod
     def create(cls, user_in: "UserCreate", session: Session) -> "User":

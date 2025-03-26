@@ -27,6 +27,10 @@ _This template is a modernized fork of [rochacbruno/fastapi-project-template](ht
 - **GitHub Actions**: CI/CD pipeline that tests on all major platforms
 - **Developer Experience**: Streamlined workflow with makefile commands and pre-commit hooks
 
+## Known Issues
+
+- **Passlib crypt deprecation warning**: The passlib library currently uses the Python standard library `crypt` module, which is deprecated and scheduled for removal in Python 3.13. This appears as a deprecation warning during testing. Once passlib releases an update that addresses this issue, we'll update our dependencies. This does not affect the functionality of the application.
+
 ## Quick Start
 
 ### Prerequisites

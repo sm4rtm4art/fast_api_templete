@@ -1,7 +1,7 @@
 """Authentication core module."""
 
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypeAlias, cast
 
 from fastapi import Depends, HTTPException, status
@@ -63,7 +63,7 @@ def create_access_token(data: JWTData, expires_delta: timedelta | None = None) -
     """Create a new access token with the given data and expiration."""
     to_encode = data.copy()
 
-    base_time = datetime.utcnow()
+    base_time = datetime.now(UTC)
     delta = expires_delta or timedelta(minutes=15)
     expire = base_time + delta
 
@@ -75,7 +75,7 @@ def create_refresh_token(data: JWTData, expires_delta: timedelta | None = None) 
     """Create a new refresh token with the given data and expiration."""
     to_encode = data.copy()
 
-    base_time = datetime.utcnow()
+    base_time = datetime.now(UTC)
     delta = expires_delta or timedelta(days=7)
     expire = base_time + delta
 

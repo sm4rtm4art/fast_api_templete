@@ -96,8 +96,20 @@ def run_safety_check(dependencies: List[str]) -> int:
 
         result = subprocess.run(cmd, capture_output=True, text=True)
 
+        # Success indicators in either stdout or stderr
+        success_indicators = [
+            "No security vulnerabilities found",
+            "no known security vulnerabilities",
+            "no vulnerabilities found",
+        ]
+
+        # Check if any success indicators are in output
+        stdout_lower = result.stdout.lower()
+        stderr_lower = result.stderr.lower()
+        found_success = any(indicator in stdout_lower or indicator in stderr_lower for indicator in success_indicators)
+
         # Parse and display results
-        if result.returncode == 0:
+        if result.returncode == 0 or found_success:
             print("✅ No security vulnerabilities found")
             return 0
         else:

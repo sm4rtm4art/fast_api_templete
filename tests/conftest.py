@@ -1,6 +1,7 @@
-"""Test configuration module."""
+"""Test configuration and fixtures."""
 
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Any, Generator
@@ -14,6 +15,13 @@ from typer.testing import CliRunner
 
 from fast_api_template.models.user import User
 from fast_api_template.utils.password import get_password_hash
+
+# Add the project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+# Set test environment
+os.environ["ENV_FOR_DYNACONF"] = "test"
 
 # Set environment variables for testing
 os.environ["FORCE_ENV_FOR_DYNACONF"] = "testing"

@@ -2,7 +2,8 @@
 
 import os
 import time
-from typing import Any, List
+from contextlib import asynccontextmanager
+from typing import Any, AsyncGenerator, List
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,11 +32,23 @@ description = """
 fast_api_template API helps you do awesome stuff. 🚀
 """
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Lifespan event handler for application startup and shutdown events."""
+    # Startup event
+    if os.environ.get("FORCE_ENV_FOR_DYNACONF") != "testing":
+        create_db_and_tables()
+    yield
+    # Shutdown event (if needed)
+
+
 app = FastAPI(
     title=settings.SERVER_NAME,
     description=settings.SERVER_DESCRIPTION,
     version=settings.SERVER_VERSION,
     docs_url=settings.SERVER_DOCS_URL,
+    lifespan=lifespan,
 )
 
 # Handle CORS origins
@@ -67,15 +80,6 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(auth_router)
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Start-up event for the application."""
-    # Only create tables automatically during startup when not in testing environment
-    # For tests, tables are created directly with the test engine
-    if os.environ.get("FORCE_ENV_FOR_DYNACONF") != "testing":
-        create_db_and_tables()
 
 
 @app.get("/health")

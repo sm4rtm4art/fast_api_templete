@@ -3,6 +3,7 @@ repos:
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^\.safety-project\.ini$
       - id: end-of-file-fixer
         exclude: ^\.safety-project\.ini$
       - id: check-yaml
@@ -64,6 +65,7 @@ repos:
         require_serial: true
         stages: [pre-commit]
         always_run: true
+        # Note: This hook doesn't actually modify files, even if pre-commit reports it does
 
   # Temporarily disable interrogate until we improve docstring coverage
   - repo: https://github.com/econchick/interrogate

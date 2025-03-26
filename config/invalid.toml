@@ -1,0 +1,7 @@
+# This is an intentionally invalid configuration file used for testing
+# It contains invalid module settings that will cause validation to fail
+
+[invalid]
+enabled = "not_a_bool"
+dependencies = "not_a_list"
+settings = "not_a_dict"
