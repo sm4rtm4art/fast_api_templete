@@ -59,7 +59,7 @@ class AWSCloudService(CloudService):
             return None
 
         client_params = self.get_client_params("s3")
-        return cast(S3Client, boto3.client(**client_params))  # type: ignore
+        return cast(S3Client, boto3.client(**client_params))
 
     def get_cache_client(self) -> Optional[object]:
         """Get AWS ElastiCache client.
@@ -74,7 +74,7 @@ class AWSCloudService(CloudService):
         cache_config = self.config.get_cache_config()
         if not cache_config or cache_config.get("type") != "elasticache":
             return None
-        return redis.Redis(  # type: ignore
+        return redis.Redis(
             host=cache_config["endpoint"],
             port=cache_config["port"],
             decode_responses=True,
@@ -94,4 +94,4 @@ class AWSCloudService(CloudService):
             return None
 
         client_params = self.get_client_params("sqs")
-        return cast(SQSClient, boto3.client(**client_params))  # type: ignore
+        return cast(SQSClient, boto3.client(**client_params))
