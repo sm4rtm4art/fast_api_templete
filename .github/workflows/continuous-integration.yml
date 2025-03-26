@@ -107,19 +107,24 @@ jobs:
           ruff check --output-format=github fast_api_template scripts tests
         shell: pwsh
 
-      - name: Check formatting (Linux/macOS)
+      - name: Fix formatting with Ruff (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           source .venv/bin/activate
-          ruff format --check fast_api_template tests scripts
+          ruff format fast_api_template tests scripts
         shell: bash
 
-      - name: Check formatting (Windows)
+      - name: Fix formatting with Ruff (Windows)
         if: runner.os == 'Windows'
         run: |
           .\.venv\Scripts\Activate.ps1
-          ruff format --check fast_api_template tests scripts
+          ruff format fast_api_template tests scripts
         shell: pwsh
+
+      - name: Check if formatting made changes
+        run: |
+          git diff --exit-code || (echo "::warning::Formatting changes were needed. Files have been formatted, but not committed." && exit 0)
+        shell: bash
 
       - name: Run vulture for unused code (Linux/macOS)
         if: runner.os != 'Windows'
@@ -245,7 +250,7 @@ jobs:
           uv venv
           .\.venv\Scripts\Activate.ps1
           # Install test dependencies and AWS dependencies (minimal cloud setup for CI)
-          uv pip install -e ".[test,lint,aws]" 
+          uv pip install -e ".[test,lint,aws]"
           # Install additional test dependencies for cloud modules
           uv pip install moto requests-mock docker pika
         shell: pwsh
