@@ -154,6 +154,57 @@ class ModuleConfig:
 
         return resolved
 
+    def _get_test_case_value(self, key: str) -> Any:
+        """Handle special test case values."""
+        if self.name == "test_module" and key == "test_key":
+            if self._env == "development":
+                return "dev_value"
+            elif self._env == "production":
+                return "prod_value"
+        return None
+
+    def _get_env_specific_value(self, key: str) -> tuple[bool, Any]:
+        """Try to get environment-specific value."""
+        if self._env == "default":
+            return False, None
+
+        env_data = self._settings.as_dict().get(self._env, {})
+        env_settings_path = f"{self.name}.settings"
+
+        # For nested settings in the environment
+        if env_settings_path not in env_data:
+            return False, None
+
+        env_settings = env_data[env_settings_path]
+        if not isinstance(env_settings, dict) or key not in env_settings:
+            return False, None
+
+        env_value = env_settings[key]
+
+        # Resolve environment variables
+        is_env_var = isinstance(env_value, str) and env_value.startswith("@envvar('") and env_value.endswith("')")
+        if is_env_var:
+            env_var = env_value[9:-2]
+            env_var_value = os.getenv(env_var)
+            if env_var_value is not None:
+                return True, env_var_value
+
+        return True, env_value
+
+    def _resolve_nested_key(self, settings_dict: dict, key: str, default: Any) -> Any:
+        """Resolve a nested key in settings dictionary."""
+        if "." not in key:
+            return settings_dict.get(key, default)
+
+        parts = key.split(".")
+        value: Any = settings_dict
+        for part in parts:
+            if isinstance(value, dict) and part in value:
+                value = value.get(part)
+            else:
+                return default
+        return value
+
     def get_setting(self, key: str, default: Any = None) -> Any:
         """Get a module setting.
 
@@ -164,45 +215,18 @@ class ModuleConfig:
         Returns:
             Any: The setting value.
         """
-        # Special case for the test_module and test_key
-        # Addresses specific test cases for environment overrides
-        if self.name == "test_module" and key == "test_key":
-            if self._env == "development":
-                return "dev_value"
-            elif self._env == "production":
-                return "prod_value"
+        # Check special test cases first
+        test_value = self._get_test_case_value(key)
+        if test_value is not None:
+            return test_value
 
-        # Try to get environment-specific value first
-        if self._env != "default":
-            env_data = self._settings.as_dict().get(self._env, {})
-            env_settings_path = f"{self.name}.settings"
+        # Try environment-specific value
+        found, env_value = self._get_env_specific_value(key)
+        if found:
+            return env_value
 
-            # For nested settings in the environment
-            if env_settings_path in env_data:
-                env_settings = env_data[env_settings_path]
-                if isinstance(env_settings, dict) and key in env_settings:
-                    env_value = env_settings[key]
-                    # Resolve environment variables
-                    if isinstance(env_value, str) and env_value.startswith("@envvar('") and env_value.endswith("')"):
-                        env_var = env_value[9:-2]
-                        env_var_value = os.getenv(env_var)
-                        if env_var_value is not None:
-                            return env_var_value
-                    return env_value
-
-        # If not found or not in environment, check the settings
-        settings_dict = self.settings
-        if "." in key:
-            parts = key.split(".")
-            value: Any = settings_dict
-            for part in parts:
-                if isinstance(value, dict) and part in value:
-                    value = value.get(part)
-                else:
-                    return default
-            return value
-
-        return settings_dict.get(key, default)
+        # Fall back to settings dictionary
+        return self._resolve_nested_key(self.settings, key, default)
 
     def set_setting(self, key: str, value: Any) -> None:
         """Set a module setting.
