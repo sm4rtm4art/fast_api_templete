@@ -43,4 +43,4 @@ queue = "app-tasks"
 [cloud.custom.kubernetes]
 context = "docker-desktop"
 namespace = "app-namespace"
-kubeconfig_path = "~/.kube/config" 
+kubeconfig_path = "~/.kube/config"

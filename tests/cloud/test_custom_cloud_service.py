@@ -17,25 +17,37 @@ class TestCustomCloudService:
         config = MagicMock(spec=CloudConfig)
         config.provider = "custom"
 
+        # Set up the storage, cache, and queue configs
+        storage_config = {
+            "type": "minio",
+            "endpoint": "minio.example.com:9000",
+            "access_key": "minioadmin",
+            "secret_key": "minioadmin",
+            "secure": True,
+        }
+
+        cache_config = {"type": "redis", "host": "redis.example.com", "port": 6379, "password": "redispass"}
+
+        queue_config = {
+            "type": "rabbitmq",
+            "host": "rabbitmq.example.com",
+            "port": 5672,
+            "username": "guest",
+            "password": "guest",
+        }
+
         # Mock the custom_provider_config property
         custom_config = {
-            "storage": {
-                "type": "minio",
-                "endpoint": "minio.example.com:9000",
-                "access_key": "minioadmin",
-                "secret_key": "minioadmin",
-                "secure": True,
-            },
-            "cache": {"type": "redis", "host": "redis.example.com", "port": 6379, "password": "redispass"},
-            "queue": {
-                "type": "rabbitmq",
-                "host": "rabbitmq.example.com",
-                "port": 5672,
-                "username": "guest",
-                "password": "guest",
-            },
+            "storage": storage_config,
+            "cache": cache_config,
+            "queue": queue_config,
         }
         config.custom_provider_config = custom_config
+
+        # Add the get_storage_config method
+        config.get_storage_config.return_value = storage_config
+        config.get_cache_config.return_value = cache_config
+        config.get_queue_config.return_value = queue_config
 
         return config
 

@@ -1,8 +1,8 @@
 """Type stub for CloudConfig from fast_api_template.config.cloud."""
 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict
 
-from stubs.test_helpers import SettingsProtocol
+from stubs.app_test_helpers import SettingsProtocol
 
 class CloudConfig:
     """Cloud configuration stub.

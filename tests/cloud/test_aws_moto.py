@@ -13,75 +13,20 @@ from moto import mock_aws
 from fast_api_template.cloud.cloud_service_provider import CloudServiceProvider
 from fast_api_template.config.cloud import CloudConfig
 from stubs.boto_stubs import S3ResponseTypeDef, SQSResponseTypeDef
-
-
-class TestSettings:
-    """Mock settings for AWS testing."""
-
-    def __init__(self) -> None:
-        self._settings: Dict[str, Any] = {
-            "cloud": {
-                "provider": "aws",
-                "region": "us-west-2",
-                "aws": {
-                    "profile": None,  # No profile for Moto
-                    "s3": {"bucket": "test-bucket"},
-                    "sqs": {
-                        "queue_url": None  # Will be set during test
-                    },
-                },
-            }
-        }
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get nested setting by dot-notation key."""
-        parts = key.split(".")
-        current = self._settings
-
-        for part in parts:
-            if isinstance(current, dict) and part in current:
-                current = current[part]
-            else:
-                return default
-
-        return current
-
-    def as_dict(self) -> Dict[str, Any]:
-        """Return settings as dictionary."""
-        return self._settings
-
-    def set(self, key: str, value: Any) -> None:
-        """Set nested setting by dot-notation key."""
-        parts = key.split(".")
-        current = self._settings
-
-        for part in parts[:-1]:
-            if part not in current:
-                current[part] = {}
-            current = current[part]
-
-        current[parts[-1]] = value
-
-    def copy(self) -> "TestSettings":
-        """Create a copy of the settings object."""
-        new_settings = TestSettings()
-        new_settings._settings = {
-            key: value.copy() if isinstance(value, dict) else value for key, value in self._settings.items()
-        }
-        return new_settings
+from tests.cloud.conftest import MockSettings
 
 
 @pytest.fixture
 def aws_config() -> CloudConfig:
     """Create AWS configuration for testing."""
-    return CloudConfig(TestSettings())  # type: ignore
+    return CloudConfig(MockSettings())  # type: ignore
 
 
 @pytest.fixture
-def aws_config_with_sqs_queue(aws_config: CloudConfig) -> CloudConfig:
+def aws_config_with_sqs_queue_for_test(aws_config: CloudConfig) -> CloudConfig:
     """Return a modified AWS config with SQS queue URL set."""
     # Create a copy of the settings
-    settings = TestSettings()
+    settings = MockSettings()
 
     # Create a test queue
     with mock_aws():
@@ -175,7 +120,7 @@ class TestAWSMoto:
             aws_config.settings,
             "get",
             side_effect=lambda key, default=None: (
-                queue_url if key == "cloud.aws.sqs.queue_url" else TestSettings().get(key, default)
+                queue_url if key == "cloud.aws.sqs.queue_url" else MockSettings().get(key, default)
             ),
         )
 
@@ -208,7 +153,7 @@ class TestAWSMoto:
         assert "Messages" not in response
 
     @mock_aws
-    def test_sqs_with_fixture(self, mocker: Any, aws_config_with_sqs_queue: CloudConfig) -> None:
+    def test_sqs_with_fixture(self, mocker: Any, aws_config_with_sqs_queue_for_test: CloudConfig) -> None:
         """Test SQS operations using the fixture with pre-configured queue."""
         # Create a test queue
         sqs_client = boto3.client("sqs", region_name="us-west-2")
@@ -217,21 +162,21 @@ class TestAWSMoto:
 
         # Patch the settings to use our queue URL
         mocker.patch.object(
-            aws_config_with_sqs_queue.settings,
+            aws_config_with_sqs_queue_for_test.settings,
             "get",
             side_effect=lambda key, default=None: (
-                queue_url if key == "cloud.aws.sqs.queue_url" else TestSettings().get(key, default)
+                queue_url if key == "cloud.aws.sqs.queue_url" else MockSettings().get(key, default)
             ),
         )
 
         # Get the AWS service
-        service = CloudServiceProvider.create_service(aws_config_with_sqs_queue)
+        service = CloudServiceProvider.create_service(aws_config_with_sqs_queue_for_test)
 
         # Get the SQS client
         queue_client = cast(Any, service.get_queue_client())
 
         # Get the queue URL from config
-        queue_url = aws_config_with_sqs_queue.settings.get("cloud.aws.sqs.queue_url")
+        queue_url = aws_config_with_sqs_queue_for_test.settings.get("cloud.aws.sqs.queue_url")
         assert queue_url is not None
 
         # Send a message
@@ -254,20 +199,13 @@ class TestAWSMoto:
     )
     @mock_aws
     def test_s3_multi_region(self, mocker: Any, aws_config: CloudConfig, region: str, bucket_name: str) -> None:
-        """Test S3 operations across multiple regions."""
-        # Patch the region in the config
-        mocker.patch.object(aws_config, "region", region)
-
-        # Get the AWS service
-        service = CloudServiceProvider.create_service(aws_config)
-
-        # Get the S3 client with the region from config
+        """Test S3 operations in different regions."""
+        # Create an S3 client for specific region
         s3_client = boto3.client("s3", region_name=region)
-        mocker.patch.object(service, "get_storage_client", return_value=s3_client)
 
         # Create a test bucket
-        # Note: us-east-1 doesn't use LocationConstraint
         if region == "us-east-1":
+            # us-east-1 is the default and doesn't accept LocationConstraint
             s3_client.create_bucket(Bucket=bucket_name)
         else:
             s3_client.create_bucket(
@@ -280,20 +218,35 @@ class TestAWSMoto:
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
         assert bucket_name in buckets
 
-        # Test basic operations
-        test_data = f"Hello from {region}!".encode()
-        s3_client.put_object(Bucket=bucket_name, Key="test-object.txt", Body=test_data)
+        # Override region in mock settings
+        mocker.patch.object(
+            aws_config.settings,
+            "get",
+            side_effect=lambda key, default=None: (
+                region
+                if key == "cloud.region"
+                else bucket_name
+                if key == "cloud.aws.s3.bucket"
+                else MockSettings().get(key, default)
+            ),
+        )
 
-        response = s3_client.get_object(Bucket=bucket_name, Key="test-object.txt")
-        content = response["Body"].read()
-        assert content == test_data
+        # Get the service with the region
+        service = CloudServiceProvider.create_service(aws_config)
+        client = cast(Any, service.get_storage_client())
+
+        # Test the client's region
+        # We can't directly check the client's region, but we can check that it can access the bucket
+        buckets = client.list_buckets()["Buckets"]
+        bucket_names = [bucket["Name"] for bucket in buckets]
+        assert bucket_name in bucket_names
 
     @mock_aws
     def test_empty_queue_handling(self, mocker: Any, aws_config: CloudConfig) -> None:
         """Test handling of empty SQS queue."""
         # Create a test queue
         sqs_client = boto3.client("sqs", region_name="us-west-2")
-        response = sqs_client.create_queue(QueueName="empty-queue")
+        response = sqs_client.create_queue(QueueName="test-queue")
         queue_url = response["QueueUrl"]
 
         # Update config with queue_url
@@ -301,7 +254,7 @@ class TestAWSMoto:
             aws_config.settings,
             "get",
             side_effect=lambda key, default=None: (
-                queue_url if key == "cloud.aws.sqs.queue_url" else TestSettings().get(key, default)
+                queue_url if key == "cloud.aws.sqs.queue_url" else MockSettings().get(key, default)
             ),
         )
 
@@ -311,8 +264,8 @@ class TestAWSMoto:
         # Get the SQS client
         queue_client = cast(Any, service.get_queue_client())
 
-        # Try to receive message from empty queue
+        # Receive message from empty queue (should return empty response without Messages)
         response = queue_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1)
 
-        # Verify no messages are returned
+        # Verify no messages
         assert "Messages" not in response

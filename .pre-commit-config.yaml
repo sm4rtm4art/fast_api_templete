@@ -45,6 +45,8 @@ repos:
     hooks:
       - id: vulture
         args: [fast_api_template, tests, --min-confidence=80, --exclude=__init__.py]
+        additional_dependencies: []
+        always_run: false
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0

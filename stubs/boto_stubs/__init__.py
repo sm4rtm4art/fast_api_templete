@@ -1,4 +1,4 @@
-"""Type stubs for AWS testing."""
+"""Boto stubs package for type checking."""
 
 from typing import Any, Dict, List, TypedDict
 

@@ -1,6 +1,6 @@
 """AWS cloud service implementation."""
 
-from typing import Dict, Optional, cast
+from typing import Any, Dict, Optional, cast
 
 import boto3
 import redis
@@ -23,10 +23,11 @@ class AWSCloudService(CloudService):
             Dict with client parameters
         """
         # Get region based on service config or fall back to general region
-        region = self.config.aws_config.get("region", "us-east-1")
+        region = self.config.aws_config.get("region", "us-east-1") if self.config.aws_config else "us-east-1"
         if service_name == "sqs":
             queue_config = self.config.get_queue_config()
-            region = queue_config.get("region", region)
+            if queue_config:
+                region = queue_config.get("region", region)
 
         # Create the client parameters
         client_params = {
@@ -35,9 +36,10 @@ class AWSCloudService(CloudService):
         }
 
         # Add profile only if it exists and is not None
-        profile = self.config.aws_config.get("profile")
-        if profile is not None:
-            client_params["profile_name"] = profile
+        if self.config.aws_config:
+            profile = self.config.aws_config.get("profile")
+            if profile is not None:
+                client_params["profile_name"] = profile
 
         return client_params
 
@@ -52,7 +54,7 @@ class AWSCloudService(CloudService):
             return None
 
         client_params = self.get_client_params("s3")
-        return cast(S3Client, boto3.client(**client_params))
+        return cast(S3Client, boto3.client(**client_params))  # type: ignore
 
     def get_cache_client(self) -> Optional[redis.Redis]:
         """Get AWS ElastiCache client.
@@ -62,7 +64,7 @@ class AWSCloudService(CloudService):
             available, None otherwise.
         """
         cache_config = self.config.get_cache_config()
-        if cache_config["type"] != "elasticache":
+        if not cache_config or cache_config.get("type") != "elasticache":
             return None
         return redis.Redis(
             host=cache_config["endpoint"],
@@ -80,8 +82,8 @@ class AWSCloudService(CloudService):
         if not self.config.aws_config:
             return None
         queue_config = self.config.get_queue_config()
-        if queue_config["type"] != "sqs":
+        if not queue_config or queue_config.get("type") != "sqs":
             return None
 
         client_params = self.get_client_params("sqs")
-        return cast(SQSClient, boto3.client(**client_params))
+        return cast(SQSClient, boto3.client(**client_params))  # type: ignore

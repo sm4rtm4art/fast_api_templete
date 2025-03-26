@@ -1,4 +1,8 @@
-"""Custom cloud service implementation."""
+"""Custom cloud service implementation.
+
+This module provides a custom cloud service that can be configured to use
+any storage, cache, or queue provider.
+"""
 
 from typing import Any, Optional
 
@@ -7,56 +11,56 @@ from fast_api_template.config.cloud import CloudConfig
 
 
 class CustomCloudService(CloudService):
-    """Implementation of CloudService for custom cloud providers.
+    """Custom cloud service provider implementation.
 
-    This implementation allows for flexible configuration of any cloud provider
-    that is not directly supported out of the box. It can be used for
-    on-premise solutions, custom Kubernetes clusters, or any other infrastructure.
+    This class allows for using any storage, cache, or queue service
+    by configuring them in settings or providing custom factory functions.
     """
 
     def __init__(self, config: CloudConfig):
-        """Initialize the custom cloud service with configuration.
+        """Initialize with cloud configuration.
 
         Args:
-            config: Cloud configuration containing custom provider settings
+            config: The cloud configuration object
         """
-        super().__init__(config)
-        self.custom_config = config.custom_provider_config or {}
-        self._storage_client_factory = self.custom_config.get("storage_client_factory")
-        self._cache_client_factory = self.custom_config.get("cache_client_factory")
-        self._queue_client_factory = self.custom_config.get("queue_client_factory")
+        self.config = config
+        # Support both the new property name (custom_config) and
+        # the old one (custom_provider_config) for backward compatibility
+        self.custom_config = getattr(config, "custom_config", {})
+        self.custom_provider_config = getattr(config, "custom_provider_config", self.custom_config)
 
-        # Storage configuration
-        self.storage_config = self.custom_config.get("storage", {})
-
-        # Cache configuration
-        self.cache_config = self.custom_config.get("cache", {})
-
-        # Queue configuration
-        self.queue_config = self.custom_config.get("queue", {})
+        # Try to get service configs from both regular config and custom config
+        self.storage_config = config.get_storage_config() or self.custom_provider_config.get("storage", {})
+        self.cache_config = config.get_cache_config() or self.custom_provider_config.get("cache", {})
+        self.queue_config = config.get_queue_config() or self.custom_provider_config.get("queue", {})
 
     def get_storage_client(self) -> Optional[Any]:
-        """Get the storage client for custom storage service.
+        """Get a storage client based on configuration.
 
         Returns:
-            A client object for interacting with the custom storage service
-            or None if not configured
+            A storage client instance or None if not configured
         """
-        if callable(self._storage_client_factory):
-            return self._storage_client_factory(self.storage_config)
+        if not self.storage_config:
+            return None
 
-        # Default implementation for common storage types
-        storage_type = self.storage_config.get("type")
+        # Check if there's a custom factory function (in either property)
+        factory = self.custom_config.get("storage_client_factory") or self.custom_provider_config.get(
+            "storage_client_factory"
+        )
+        if factory and callable(factory):
+            return factory(self.storage_config)
 
-        if storage_type == "minio":
-            # MinIO is a common self-hosted S3-compatible service
+        # Default implementations based on type
+        storage_type = self.storage_config.get("type", "")
+
+        if storage_type == "s3" or storage_type == "minio":
             try:
-                from minio import Minio
+                import minio
 
-                return Minio(
+                return minio.Minio(
                     endpoint=self.storage_config.get("endpoint", "localhost:9000"),
-                    access_key=self.storage_config.get("access_key", ""),
-                    secret_key=self.storage_config.get("secret_key", ""),
+                    access_key=self.storage_config.get("access_key", "minioadmin"),
+                    secret_key=self.storage_config.get("secret_key", "minioadmin"),
                     secure=self.storage_config.get("secure", False),
                 )
             except ImportError:
@@ -65,27 +69,33 @@ class CustomCloudService(CloudService):
         return None
 
     def get_cache_client(self) -> Optional[Any]:
-        """Get the cache client for custom cache service.
+        """Get a cache client based on configuration.
 
         Returns:
-            A client object for interacting with the custom cache service
-            or None if not configured
+            A cache client instance or None if not configured
         """
-        if callable(self._cache_client_factory):
-            return self._cache_client_factory(self.cache_config)
+        if not self.cache_config:
+            return None
 
-        # Default implementation for common cache types
-        cache_type = self.cache_config.get("type")
+        # Check if there's a custom factory function (in either property)
+        factory = self.custom_config.get("cache_client_factory") or self.custom_provider_config.get(
+            "cache_client_factory"
+        )
+        if factory and callable(factory):
+            return factory(self.cache_config)
+
+        # Default implementations based on type
+        cache_type = self.cache_config.get("type", "")
 
         if cache_type == "redis":
             try:
-                from redis import Redis
+                import redis
 
-                return Redis(
+                return redis.Redis(
                     host=self.cache_config.get("host", "localhost"),
                     port=self.cache_config.get("port", 6379),
-                    password=self.cache_config.get("password"),
                     db=self.cache_config.get("db", 0),
+                    password=self.cache_config.get("password", None),
                     decode_responses=True,
                 )
             except ImportError:
@@ -94,23 +104,29 @@ class CustomCloudService(CloudService):
         return None
 
     def get_queue_client(self) -> Optional[Any]:
-        """Get the queue client for custom message queue service.
+        """Get a queue client based on configuration.
 
         Returns:
-            A client object for interacting with the custom message queue
-            or None if not configured
+            A queue client instance or None if not configured
         """
-        if callable(self._queue_client_factory):
-            return self._queue_client_factory(self.queue_config)
+        if not self.queue_config:
+            return None
 
-        # Default implementation for common queue types
-        queue_type = self.queue_config.get("type")
+        # Check if there's a custom factory function (in either property)
+        factory = self.custom_config.get("queue_client_factory") or self.custom_provider_config.get(
+            "queue_client_factory"
+        )
+        if factory and callable(factory):
+            return factory(self.queue_config)
+
+        # Default implementations based on type
+        queue_type = self.queue_config.get("type", "")
 
         if queue_type == "rabbitmq":
             try:
                 import pika
 
-                credentials = pika.PlainCredentials(
+                credentials = pika.PlainCredentials(  # type: ignore
                     username=self.queue_config.get("username", "guest"),
                     password=self.queue_config.get("password", "guest"),
                 )

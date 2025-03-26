@@ -30,4 +30,4 @@ vhost = "/"
 # Kubernetes configuration if using Hetzner Kubernetes (optional)
 [cloud.hetzner.kubernetes]
 cluster_name = "your-hetzner-k8s-cluster"
-kubeconfig_path = "~/.kube/hetzner-config" 
+kubeconfig_path = "~/.kube/hetzner-config"
