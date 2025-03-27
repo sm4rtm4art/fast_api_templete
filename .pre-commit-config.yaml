@@ -14,10 +14,10 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.8
+    rev: v0.11.2
     hooks:
       - id: ruff
-        args: [--fix, --select=I, --line-length=120]
+        args: [--fix, --unsafe-fixes, --line-length=120]
       - id: ruff-format
         args: [--line-length=120]
 
