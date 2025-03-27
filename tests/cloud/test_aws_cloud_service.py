@@ -72,7 +72,7 @@ class TestAWSCloudService:
         # Setup
         mock_config.get_queue_config.return_value = {
             "type": "sqs",
-            "queue_url": ("https://sqs.us-west-2.amazonaws.com/" "123456789012/test-queue"),
+            "queue_url": ("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"),
             "region": "us-west-2",
         }
 

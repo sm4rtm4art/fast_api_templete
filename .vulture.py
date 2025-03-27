@@ -4,6 +4,7 @@
 This file lists functions and variables that are used dynamically or
 via introspection, which vulture would otherwise report as unused.
 """
+
 import sys
 
 

@@ -1,6 +1,6 @@
 """Type stub for requests_mock package."""
 
-from typing import Any, Callable, ContextManager, Dict, Optional, Pattern, Union
+from typing import Any, Dict, Optional, Pattern, Union
 
 class Mocker:
     """Type stub for requests_mock.Mocker.

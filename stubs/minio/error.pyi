@@ -1,6 +1,6 @@
 """Type stub for minio.error module."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 class S3Error(Exception):
     """Base exception for all minio S3 errors.

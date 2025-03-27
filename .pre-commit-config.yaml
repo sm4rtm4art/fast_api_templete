@@ -13,53 +13,45 @@ repos:
       - id: debug-statements
       - id: detect-private-key
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.2
-    hooks:
-      - id: ruff
-        args: [--fix, --unsafe-fixes, --line-length=120]
-      - id: ruff-format
-        args: [--line-length=120]
-
-  # Add proper type checking with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
-    hooks:
-      - id: mypy
-        exclude: "stubs/.*"
-        additional_dependencies:
-          [
-            types-requests,
-            pydantic,
-            types-python-jose,
-            types-passlib,
-            types-redis,
-            types-boto3,
-            types-docker,
-            boto3-stubs,
-            mypy-boto3-s3,
-            mypy-boto3-sqs,
-          ]
-        args: [--config-file=pyproject.toml]
-
-  - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.10
-    hooks:
-      - id: vulture
-        args: ["--min-confidence=80"]
-        additional_dependencies: []
-        always_run: false
-
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0
-    hooks:
-      - id: prettier
-        types_or: [javascript, jsx, ts, tsx, json, yaml, css, scss, html]
-        args: [--print-width=120]
-
-  # Custom hook for dependency security checking that works with pyproject.toml
+  # All local hooks that use project dependencies from pyproject.toml
   - repo: local
     hooks:
+      - id: mypy
+        name: mypy
+        description: Run mypy static type checker with project dependencies
+        entry: bash -c 'pip install -e ".[lint]" > /dev/null && python -m mypy --config-file=pyproject.toml fast_api_template'
+        language: system
+        pass_filenames: false
+        types: [python]
+        require_serial: true
+
+      - id: vulture
+        name: vulture
+        description: Run vulture to find unused code with project dependencies
+        entry: bash -c 'pip install -e ".[lint]" > /dev/null && python -m vulture --min-confidence=80 fast_api_template tests'
+        language: system
+        pass_filenames: false
+        types: [python]
+        require_serial: true
+
+      - id: ruff-lint
+        name: ruff linter
+        description: Run ruff linter with project dependencies
+        entry: bash -c 'pip install -e ".[lint]" > /dev/null && python -m ruff check --fix --unsafe-fixes --line-length=120 .'
+        language: system
+        pass_filenames: false
+        types: [python]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff formatter
+        description: Run ruff formatter with project dependencies
+        entry: bash -c 'pip install -e ".[lint]" > /dev/null && python -m ruff format --line-length=120 .'
+        language: system
+        pass_filenames: false
+        types: [python]
+        require_serial: true
+
       - id: security-check
         name: Dependency Security Check
         entry: python scripts/check_dependencies.py
@@ -70,6 +62,13 @@ repos:
         stages: [pre-commit]
         always_run: true
         # Note: This hook doesn't actually modify files, even if pre-commit reports it does
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [javascript, jsx, ts, tsx, json, yaml, css, scss, html]
+        args: [--print-width=120]
 
   # Temporarily disable interrogate until we improve docstring coverage
   - repo: https://github.com/econchick/interrogate

@@ -1,16 +1,27 @@
 """AWS cloud service implementation."""
 
-from typing import Dict, Optional, cast
+from typing import Any, Dict, Literal, Optional, cast
 
 import boto3
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sqs.client import SQSClient
 
+# Use a TYPE_CHECKING guard for redis import
 try:
     import redis
+
+    REDIS_AVAILABLE = True
 except ImportError:
-    # Optional dependency, will be handled gracefully in methods
-    redis = None
+    # Define a placeholder for type checking
+    REDIS_AVAILABLE = False
+
+    # This keeps mypy happy while maintaining runtime safety
+    class redis:  # type: ignore
+        @staticmethod
+        def Redis(*args: Any, **kwargs: Any) -> Any:
+            """Placeholder for Redis client."""
+            return None
+
 
 from fast_api_template.cloud.cloud_service_interface import CloudService
 
@@ -18,7 +29,7 @@ from fast_api_template.cloud.cloud_service_interface import CloudService
 class AWSCloudService(CloudService):
     """AWS cloud service implementation."""
 
-    def get_client_params(self, service_name: str) -> Dict[str, str]:
+    def get_client_params(self, service_name: str) -> Dict[str, Any]:
         """Get common client parameters for AWS services.
 
         Args:
@@ -28,16 +39,20 @@ class AWSCloudService(CloudService):
             Dict with client parameters
         """
         # Get region based on service config or fall back to general region
-        region = self.config.aws_config.get("region", "us-east-1") if self.config.aws_config else "us-east-1"
+        aws_region = "us-east-1"  # Default region
+        if self.config.aws_config:
+            aws_region = self.config.aws_config.get("region", aws_region)
+
+        # Check for service-specific region override
         if service_name == "sqs":
             queue_config = self.config.get_queue_config()
             if queue_config:
-                region = queue_config.get("region", region)
+                aws_region = queue_config.get("region", aws_region)
 
         # Create the client parameters
-        client_params = {
+        client_params: Dict[str, Any] = {
             "service_name": service_name,
-            "region_name": region,
+            "region_name": aws_region,
         }
 
         # Add profile only if it exists and is not None
@@ -58,19 +73,31 @@ class AWSCloudService(CloudService):
         if not self.config.aws_config:
             return None
 
-        client_params = self.get_client_params("s3")
-        return cast(S3Client, boto3.client(**client_params))
+        # Use literal 's3' to satisfy mypy's strict type checking for boto3
+        service_name: Literal["s3"] = "s3"
+        region_name = str(self.config.aws_config.get("region", "us-east-1"))
+        profile_name = self.config.aws_config.get("profile")
 
-    def get_cache_client(self) -> Optional[object]:
+        # Type ignore needed for complex boto3 typing
+        return cast(
+            S3Client,
+            boto3.client(  # type: ignore[call-overload]
+                service_name=service_name,
+                region_name=region_name,
+                profile_name=profile_name,
+            ),
+        )
+
+    def get_cache_client(self) -> Optional[Any]:
         """Get AWS ElastiCache client.
 
         Returns:
             Optional[Redis]: The Redis client if ElastiCache config is
             available, None otherwise.
         """
-        if redis is None:
+        if not REDIS_AVAILABLE:
             return None
-            
+
         cache_config = self.config.get_cache_config()
         if not cache_config or cache_config.get("type") != "elasticache":
             return None
@@ -93,5 +120,22 @@ class AWSCloudService(CloudService):
         if not queue_config or queue_config.get("type") != "sqs":
             return None
 
-        client_params = self.get_client_params("sqs")
-        return cast(SQSClient, boto3.client(**client_params))
+        # Use literal 'sqs' to satisfy mypy's strict type checking for boto3
+        service_name: Literal["sqs"] = "sqs"
+
+        # Get the region from queue config or fall back to AWS config
+        default_region = self.config.aws_config.get("region", "us-east-1")
+        region = queue_config.get("region", default_region)
+        region_name = str(region)
+
+        profile_name = self.config.aws_config.get("profile")
+
+        # Type ignore needed for complex boto3 typing
+        return cast(
+            SQSClient,
+            boto3.client(  # type: ignore[call-overload]
+                service_name=service_name,
+                region_name=region_name,
+                profile_name=profile_name,
+            ),
+        )

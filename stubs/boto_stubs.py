@@ -2,6 +2,7 @@
 
 This module defines common response type for AWS services used in the application.
 """
+
 from typing import Any, Dict, List, Optional, TypedDict
 
 
@@ -46,4 +47,4 @@ class SQSResponseTypeDef(TypedDict, total=False):
     Messages: List[SQSMessageTypeDef]
     MessageId: str
     MD5OfMessageBody: str
-    ReceiptHandle: Optional[str] 
+    ReceiptHandle: Optional[str]
