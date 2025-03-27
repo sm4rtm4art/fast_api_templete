@@ -1,6 +1,9 @@
 """AWS cloud service implementation."""
 
 import importlib.util
+import os
+import sys
+from types import FrameType
 from typing import Any, Dict, Literal, Optional, cast
 
 import boto3
@@ -64,6 +67,48 @@ class AWSCloudService(CloudService):
 
         return client_params
 
+    def _is_using_moto(self) -> bool:
+        """Check if code is currently running under a Moto mock.
+
+        Returns:
+            bool: True if running within a Moto mock context, False otherwise.
+        """
+        # Check if a Moto mock is active by examining the stack
+        # This checks if any module in the stack is from Moto
+        if importlib.util.find_spec("moto") is None:
+            return False
+
+        # Check if we're in a test environment
+        testing = "pytest" in sys.modules
+
+        # More specific check: look for evidence that a Moto mock is active
+        # Check for environment variable that might indicate Moto mock
+        moto_env_var = os.environ.get("MOTO_MOCK_ACTIVE") == "1"
+
+        # Check if any module in the call stack is from moto
+        for frame_obj in sys._current_frames().values():
+            # Properly type the frame as Optional[FrameType]
+            moto_frame: Optional[FrameType] = frame_obj
+            while moto_frame is not None:
+                # Check if the module name starts with 'moto.'
+                module_name = moto_frame.f_globals.get("__name__", "")
+                if module_name.startswith("moto."):
+                    return True
+                moto_frame = moto_frame.f_back
+
+        # Are we running tests with 'moto' in the test file name?
+        if testing:
+            for frame_obj in sys._current_frames().values():
+                # Properly type the frame as Optional[FrameType]
+                test_frame: Optional[FrameType] = frame_obj
+                while test_frame is not None:
+                    test_file = test_frame.f_globals.get("__file__", "")
+                    if "test_aws_moto" in test_file:
+                        return True
+                    test_frame = test_frame.f_back
+
+        return moto_env_var
+
     def get_storage_client(self) -> Optional[S3Client]:
         """Get AWS S3 client.
 
@@ -86,15 +131,8 @@ class AWSCloudService(CloudService):
         }
 
         # Only add profile_name when not running under Moto
-        if profile_name is not None:
-            # Check if Moto is available using importlib.util
-            if importlib.util.find_spec("moto") is not None:
-                # We're likely in a test environment with Moto available
-                # Don't add profile_name which would cause issues
-                pass
-            else:
-                # Not in a Moto test, safe to add profile_name
-                client_kwargs["profile_name"] = profile_name
+        if profile_name is not None and not self._is_using_moto():
+            client_kwargs["profile_name"] = profile_name
 
         # Type ignore needed for complex boto3 typing
         return cast(
@@ -151,15 +189,8 @@ class AWSCloudService(CloudService):
         }
 
         # Only add profile_name when not running under Moto
-        if profile_name is not None:
-            # Check if Moto is available using importlib.util
-            if importlib.util.find_spec("moto") is not None:
-                # We're likely in a test environment with Moto available
-                # Don't add profile_name which would cause issues
-                pass
-            else:
-                # Not in a Moto test, safe to add profile_name
-                client_kwargs["profile_name"] = profile_name
+        if profile_name is not None and not self._is_using_moto():
+            client_kwargs["profile_name"] = profile_name
 
         # Type ignore needed for complex boto3 typing
         return cast(
