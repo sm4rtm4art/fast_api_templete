@@ -238,10 +238,10 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          # Install test dependencies and AWS dependencies (minimal cloud setup for CI)
-          uv pip install -e ".[test,lint,aws]"
+          # Install dependencies for all cloud providers to ensure tests pass
+          uv pip install -e ".[test,lint,cloud,cloud-test]"
           # Install additional test dependencies for cloud modules
-          uv pip install moto requests-mock docker pika
+          uv pip install moto requests-mock docker pika minio
         shell: bash
 
       - name: Install dependencies (Windows)
@@ -249,10 +249,10 @@ jobs:
         run: |
           uv venv
           .\.venv\Scripts\Activate.ps1
-          # Install test dependencies and AWS dependencies (minimal cloud setup for CI)
-          uv pip install -e ".[test,lint,aws]"
+          # Install dependencies for all cloud providers to ensure tests pass
+          uv pip install -e ".[test,lint,cloud,cloud-test]"
           # Install additional test dependencies for cloud modules
-          uv pip install moto requests-mock docker pika
+          uv pip install moto requests-mock docker pika minio
         shell: pwsh
 
       - name: Test with pytest (Linux/macOS)

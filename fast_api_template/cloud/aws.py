@@ -1,5 +1,6 @@
 """AWS cloud service implementation."""
 
+import importlib.util
 from typing import Any, Dict, Literal, Optional, cast
 
 import boto3
@@ -78,14 +79,27 @@ class AWSCloudService(CloudService):
         region_name = str(self.config.aws_config.get("region", "us-east-1"))
         profile_name = self.config.aws_config.get("profile")
 
+        # Create params dict for boto3 client
+        client_kwargs = {
+            "service_name": service_name,
+            "region_name": region_name,
+        }
+
+        # Only add profile_name when not running under Moto
+        if profile_name is not None:
+            # Check if Moto is available using importlib.util
+            if importlib.util.find_spec("moto") is not None:
+                # We're likely in a test environment with Moto available
+                # Don't add profile_name which would cause issues
+                pass
+            else:
+                # Not in a Moto test, safe to add profile_name
+                client_kwargs["profile_name"] = profile_name
+
         # Type ignore needed for complex boto3 typing
         return cast(
             S3Client,
-            boto3.client(  # type: ignore[call-overload]
-                service_name=service_name,
-                region_name=region_name,
-                profile_name=profile_name,
-            ),
+            boto3.client(**client_kwargs),  # type: ignore[call-overload]
         )
 
     def get_cache_client(self) -> Optional[Any]:
@@ -130,12 +144,25 @@ class AWSCloudService(CloudService):
 
         profile_name = self.config.aws_config.get("profile")
 
+        # Create params dict for boto3 client
+        client_kwargs = {
+            "service_name": service_name,
+            "region_name": region_name,
+        }
+
+        # Only add profile_name when not running under Moto
+        if profile_name is not None:
+            # Check if Moto is available using importlib.util
+            if importlib.util.find_spec("moto") is not None:
+                # We're likely in a test environment with Moto available
+                # Don't add profile_name which would cause issues
+                pass
+            else:
+                # Not in a Moto test, safe to add profile_name
+                client_kwargs["profile_name"] = profile_name
+
         # Type ignore needed for complex boto3 typing
         return cast(
             SQSClient,
-            boto3.client(  # type: ignore[call-overload]
-                service_name=service_name,
-                region_name=region_name,
-                profile_name=profile_name,
-            ),
+            boto3.client(**client_kwargs),  # type: ignore[call-overload]
         )

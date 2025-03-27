@@ -63,7 +63,10 @@ jobs:
       - name: Install dependencies
         if: steps.check_pyproject.outputs.run_tests != 'false'
         run: |
-          uv pip install --system ".[cloud-test,dev]"
+          # Install dependencies for all cloud providers to ensure tests pass
+          uv pip install --system -e ".[cloud-test,cloud,dev]"
+          # Install extra test dependencies that might not be in pyproject.toml
+          uv pip install --system minio redis pika requests-mock moto boto3
 
       - name: Lint with Ruff
         if: steps.check_pyproject.outputs.run_tests != 'false'
