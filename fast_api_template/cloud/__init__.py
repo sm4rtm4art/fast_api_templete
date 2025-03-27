@@ -53,8 +53,8 @@ __all__ = [
     "CloudServiceProvider",
     "AWSCloudService",
     "AzureCloudService",
+    "CustomCloudService",
     "GCPCloudService",
     "HetznerCloudService",
-    "CustomCloudService",
     "LocalCloudService",
 ]
