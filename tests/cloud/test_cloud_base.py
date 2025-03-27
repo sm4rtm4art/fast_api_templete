@@ -5,11 +5,13 @@ implementations consistently across different providers.
 """
 
 import abc
-from typing import Generator
 
 import pytest
 
-from fast_api_template.cloud.cloud_service_interface import CloudService
+from fast_api_template.cloud.cloud_service_interface import (
+    CloudService,
+    CloudServiceError,
+)
 from fast_api_template.cloud.cloud_service_provider import CloudServiceProvider
 from fast_api_template.config.cloud import CloudConfig
 
@@ -151,7 +153,7 @@ class CloudServiceErrorTestBase(abc.ABC):
         Args:
             error_cloud_service: Cloud service with invalid configuration
         """
-        with pytest.raises(Exception):
+        with pytest.raises((CloudServiceError, ValueError, ConnectionError)):
             error_cloud_service.get_storage_client()
 
     @abc.abstractmethod
@@ -161,7 +163,7 @@ class CloudServiceErrorTestBase(abc.ABC):
         Args:
             error_cloud_service: Cloud service with invalid configuration
         """
-        with pytest.raises(Exception):
+        with pytest.raises((CloudServiceError, ValueError, ConnectionError)):
             error_cloud_service.get_cache_client()
 
     @abc.abstractmethod
@@ -171,5 +173,5 @@ class CloudServiceErrorTestBase(abc.ABC):
         Args:
             error_cloud_service: Cloud service with invalid configuration
         """
-        with pytest.raises(Exception):
+        with pytest.raises((CloudServiceError, ValueError, ConnectionError)):
             error_cloud_service.get_queue_client()

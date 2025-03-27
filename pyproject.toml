@@ -185,6 +185,7 @@ ignore = [
     "F811",    # Redefined name - often happens with fixtures
     "E402",    # Module level import not at top of file
     "F841",    # Local variable assigned but never used - common in test mocks
+    "B017",    # Do not assert blind exception - tests often need to catch any exception
 ]
 # Ignore setattr with constant attribute value in tests (common testing pattern)
 "tests/*.py" = [

@@ -6,6 +6,16 @@ from typing import Any, Optional
 from fast_api_template.config.cloud import CloudConfig
 
 
+class CloudServiceError(Exception):
+    """Base exception for cloud service errors.
+
+    This exception is raised when cloud service operations fail due to
+    configuration issues, connection problems, or other cloud-specific errors.
+    """
+
+    pass
+
+
 class CloudService(ABC):
     """Abstract base class for cloud service operations.
 
