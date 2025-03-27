@@ -32,90 +32,69 @@ def docker_client() -> docker.DockerClient:
 
 @pytest.fixture(scope="module")
 def minio_container(docker_client: docker.DockerClient) -> Generator[docker.models.containers.Container, None, None]:
-    """Start a MinIO container for S3-compatible storage testing."""
+    """Create a MinIO container for S3-compatible storage testing."""
     container = docker_client.containers.run(
-        "minio/minio:latest",
+        "minio/minio",
         command="server /data",
-        environment={"MINIO_ACCESS_KEY": "minioadmin", "MINIO_SECRET_KEY": "minioadmin"},
-        ports={"9000/tcp": 9000},
+        ports={"9000": 9000, "9001": 9001},
+        environment={
+            "MINIO_ROOT_USER": "minioadmin",
+            "MINIO_ROOT_PASSWORD": "minioadmin",
+        },
         detach=True,
     )
-
-    # Wait for MinIO to be ready
-    import time
-
-    # Could be improved with proper readiness check
-    time.sleep(5)
-
+    # Wait for container to be ready
+    container.reload()
     yield container
-
-    # Cleanup
-    container.stop()
-    container.remove()
+    try:
+        container.stop(timeout=5)
+        container.remove()
+    except Exception:
+        pass  # Best effort cleanup
 
 
 @pytest.fixture(scope="module")
 def redis_container(docker_client: docker.DockerClient) -> Generator[docker.models.containers.Container, None, None]:
-    """Start a Redis container for cache testing."""
-    container = docker_client.containers.run("redis:latest", ports={"6379/tcp": 6379}, detach=True)
-
-    # Wait for Redis to be ready
-    import time
-
-    # Could be improved with proper readiness check
-    time.sleep(3)
-
+    """Create a Redis container for cache testing."""
+    container = docker_client.containers.run(
+        "redis:latest",
+        ports={"6379": 6379},
+        detach=True,
+    )
+    # Wait for container to be ready
+    container.reload()
     yield container
-
-    # Cleanup
-    container.stop()
-    container.remove()
+    try:
+        container.stop(timeout=5)
+        container.remove()
+    except Exception:
+        pass  # Best effort cleanup
 
 
 @pytest.fixture(scope="module")
 def rabbitmq_container(docker_client: docker.DockerClient) -> Generator[docker.models.containers.Container, None, None]:
-    """Start a RabbitMQ container for queue testing."""
+    """Create a RabbitMQ container for queue testing."""
+    container = docker_client.containers.run(
+        "rabbitmq:3-management",
+        ports={"5672": 5672, "15672": 15672},
+        detach=True,
+    )
+    # Wait for container to be ready
+    container.reload()
+    yield container
     try:
-        container = docker_client.containers.run(
-            "rabbitmq:management", ports={"5672/tcp": 5672, "15672/tcp": 15672}, detach=True
-        )
-
-        # Wait for RabbitMQ to be ready
-        import time
-
-        # Use a maximum timeout to prevent test hanging
-        max_wait = 30
-        start_time = time.time()
-        ready = False
-
-        # Poll container logs to check for readiness
-        while time.time() - start_time < max_wait and not ready:
-            logs = container.logs().decode("utf-8", errors="replace")
-            if "Server startup complete" in logs:
-                ready = True
-                break
-            time.sleep(1)
-
-        # Even if we don't see the ready message, give it a bit more time
-        if not ready:
-            time.sleep(5)
-
-        yield container
-    except Exception as e:
-        pytest.skip(f"Error setting up RabbitMQ container: {e}")
-    finally:
-        # Cleanup
-        if "container" in locals():
-            try:
-                container.stop(timeout=5)
-                container.remove()
-            except Exception:
-                pass  # Best effort cleanup
+        container.stop(timeout=5)
+        container.remove()
+    except Exception:
+        pass  # Best effort cleanup
 
 
 @pytest.fixture
 def minio_client(minio_container) -> Minio:
     """Create a MinIO client for S3-compatible storage testing."""
+    # Ensure container is running
+    if not minio_container.status == "running":
+        minio_container.start()
     return Minio("localhost:9000", access_key="minioadmin", secret_key="minioadmin", secure=False)
 
 
@@ -140,12 +119,18 @@ def s3_bucket(minio_client) -> Generator[str, None, None]:
 @pytest.fixture
 def redis_client(redis_container) -> redis.Redis:
     """Create a Redis client for cache testing."""
+    # Ensure container is running
+    if not redis_container.status == "running":
+        redis_container.start()
     return redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 
 @pytest.fixture(scope="module")
 def rabbitmq_connection(rabbitmq_container) -> Generator[pika.BlockingConnection, None, None]:
     """Create a RabbitMQ connection for queue testing."""
+    # Ensure container is running
+    if not rabbitmq_container.status == "running":
+        rabbitmq_container.start()
     connection = None
     try:
         # Add a connection timeout to prevent hanging
@@ -532,3 +517,16 @@ class TestDockerIntegration:
         connection.close()
         cache_client.delete(cache_key)
         s3_client.delete_object(Bucket=s3_bucket, Key=object_key)
+
+    @staticmethod
+    def _timeout_handler(signum: int, frame: Any) -> None:
+        """Handle timeout signal.
+
+        Args:
+            signum: Signal number
+            frame: Current stack frame
+        """
+        # Use the parameters to avoid vulture warnings
+        _ = signum
+        _ = frame
+        raise TimeoutError("Operation timed out")

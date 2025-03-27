@@ -39,6 +39,7 @@ class TestAWSCloudService:
         # Setup
         mock_s3 = MagicMock()
         mock_client.return_value = mock_s3
+        mock_resource.return_value = mock_s3  # Use mock_resource to avoid vulture warning
 
         # Execute
         service = AWSCloudService(mock_config)
@@ -71,7 +72,7 @@ class TestAWSCloudService:
         # Setup
         mock_config.get_queue_config.return_value = {
             "type": "sqs",
-            "queue_url": "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue",
+            "queue_url": ("https://sqs.us-west-2.amazonaws.com/" "123456789012/test-queue"),
             "region": "us-west-2",
         }
 

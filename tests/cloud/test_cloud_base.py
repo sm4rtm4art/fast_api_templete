@@ -5,7 +5,7 @@ implementations consistently across different providers.
 """
 
 import abc
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Generator
 
 import pytest
 
@@ -106,12 +106,12 @@ class CloudServiceTestBase(abc.ABC):
         Args:
             cloud_service: The cloud service instance
         """
-        storage_client = cloud_service.get_storage_client()
-        cache_client = cloud_service.get_cache_client()
-        queue_client = cloud_service.get_queue_client()
-
-        # The availability of specific clients depends on the provider configuration
-        # Some tests may not require all clients
+        # Initialize clients to verify they can be created
+        # The availability of specific clients depends on the provider
+        # configuration. Some tests may not require all clients.
+        _ = cloud_service.get_storage_client()
+        _ = cloud_service.get_cache_client()
+        _ = cloud_service.get_queue_client()
 
 
 class CloudServiceErrorTestBase(abc.ABC):
@@ -151,7 +151,8 @@ class CloudServiceErrorTestBase(abc.ABC):
         Args:
             error_cloud_service: Cloud service with invalid configuration
         """
-        pass
+        with pytest.raises(Exception):
+            error_cloud_service.get_storage_client()
 
     @abc.abstractmethod
     def test_cache_client_error(self, error_cloud_service: CloudService) -> None:
@@ -160,7 +161,8 @@ class CloudServiceErrorTestBase(abc.ABC):
         Args:
             error_cloud_service: Cloud service with invalid configuration
         """
-        pass
+        with pytest.raises(Exception):
+            error_cloud_service.get_cache_client()
 
     @abc.abstractmethod
     def test_queue_client_error(self, error_cloud_service: CloudService) -> None:
@@ -169,4 +171,5 @@ class CloudServiceErrorTestBase(abc.ABC):
         Args:
             error_cloud_service: Cloud service with invalid configuration
         """
-        pass
+        with pytest.raises(Exception):
+            error_cloud_service.get_queue_client()
