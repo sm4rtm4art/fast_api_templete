@@ -30,16 +30,10 @@ RUN echo "UV location: $(which uv)" && uv --version
 # Copy all project files first
 COPY . .
 
-# Generate requirements.txt with only runtime dependencies.
-# --no-deps might be too restrictive if the base package has deps not explicitly listed.
-# Let's try compiling without --no-deps first. We exclude extras.
-# --no-strip-extras is needed if pyproject.toml specifies extras, but we want *only* base deps.
-# Let's explicitly install the base package '.' and then freeze.
-# Use the globally installed /usr/local/bin/uv for all steps.
-# uv should detect the .venv in the current directory.
+# Generate requirements.txt with only runtime dependencies, excluding the project itself
 RUN uv venv .venv && \
     uv pip install --no-cache . && \
-    uv pip freeze > requirements.txt
+    uv pip freeze | grep -v "fast-api-template" > requirements.txt
 
 # Create a non-root user and adjust file ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
@@ -65,7 +59,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements.txt from builder stage
+# Copy pyproject.toml first
+COPY --from=builder /app/pyproject.toml /app/pyproject.toml
 COPY --from=builder /app/requirements.txt /app/requirements.txt
 
 # Install runtime dependencies from requirements.txt into system site-packages using pip
@@ -75,9 +70,11 @@ RUN pip install --no-cache-dir -r /app/requirements.txt && \
 # Copy only the necessary files from the builder stage.
 COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
-COPY --from=builder /app/pyproject.toml /app/
 COPY --from=builder /app/LICENSE /app/
 COPY --from=builder /app/fast_api_template /app/fast_api_template
+
+# Install the project itself
+RUN pip install -e .
 
 # Create a non-root user for runtime and set proper ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app

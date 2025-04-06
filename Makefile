@@ -195,7 +195,7 @@ mypy: ## Run mypy
 mypy-report: ## Run mypy with HTML report
 	$(ENV_PREFIX)mypy --config-file=pyproject.toml --html-report ./mypy_html fast_api_template/
 
-# This project has been generated from rochacbruno/fastapi-project-template
-# __author__ = 'rochacbruno'
-# __repo__ = https://github.com/rochacbruno/fastapi-project-template
-# __sponsor__ = https://github.com/sponsors/rochacbruno/
+# This project has been generated from sm4rtm4rt/fastapi-project-template
+# __author__ = 'Martin'
+# __repo__ = https://github.com/sm4rtm4art/fast_api_templete
+# __origin__ = https://github.com/rochacbruno/fastapi-project-template
