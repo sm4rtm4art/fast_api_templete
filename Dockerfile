@@ -27,8 +27,8 @@ COPY --from=uv /uvx /usr/local/bin/uvx
 # (Optional) Verify UV installation.
 RUN echo "UV location: $(which uv)" && uv --version
 
-# Copy only pyproject.toml first for dependency resolution
-COPY pyproject.toml ./
+# Copy metadata files needed for the build process first
+COPY pyproject.toml README.md LICENSE ./
 
 # Generate requirements.txt with only runtime dependencies.
 # --no-deps might be too restrictive if the base package has deps not explicitly listed.
