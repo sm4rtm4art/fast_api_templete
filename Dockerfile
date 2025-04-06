@@ -13,9 +13,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# DEBUG: Show initial state
-RUN echo "---> Initial state in /app:" && pwd && ls -la
-
 # Install build dependencies and clean up.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -30,18 +27,16 @@ COPY --from=uv /uvx /usr/local/bin/uvx
 # (Optional) Verify UV installation.
 RUN echo "UV location: $(which uv)" && uv --version
 
-# Copy metadata files AND scripts needed for the build process first
-COPY pyproject.toml README.md LICENSE scripts ./
-
-# DEBUG: Check state immediately after copy
-RUN echo "---> After copying scripts and metadata:" && ls -la /app && echo "---> Listing /app/scripts specifically:" && ls -la /app/scripts
+# Copy metadata files needed for the build process first
+COPY pyproject.toml README.md LICENSE ./
+# Copy the scripts directory separately
+COPY scripts ./scripts
 
 # Generate requirements.txt with only runtime dependencies.
 # --no-deps might be too restrictive if the base package has deps not explicitly listed.
 # Let's try compiling without --no-deps first. We exclude extras.
 # --no-strip-extras is needed if pyproject.toml specifies extras, but we want *only* base deps.
 # Let's explicitly install the base package '.' and then freeze.
-# Create venv, install base package into it, then freeze deps.
 # Use the globally installed /usr/local/bin/uv for all steps.
 # uv should detect the .venv in the current directory.
 RUN uv venv .venv && \
@@ -53,10 +48,6 @@ COPY fast_api_template ./fast_api_template
 
 # Create a non-root user and adjust file ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
-
-# DEBUG: Verify entrypoint.sh exists in the builder stage
-# List all files in /app at the end of the builder stage
-RUN echo "---> Debugging (End of Builder): Listing /app contents:" && ls -la /app
 
 # === Stage 2: Final Runtime Image ===
 FROM python:3.12-slim AS final
