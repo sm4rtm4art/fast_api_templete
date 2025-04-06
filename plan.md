@@ -4,34 +4,85 @@
 
 **CURRENT STATUS & NEXT STEPS (Dockerfile CI Debug)**
 
-- **Problem:** The GitHub Actions Docker build (commit `72669e8`) is still failing when the final stage tries to copy the script from the builder stage. The specific error is:
+- **Problem:** Docker build in GitHub Actions is failing with multiple issues:
+
+  1. Initial error: The scripts directory wasn't found in the builder stage
+  2. Second error: Requirements installation failed due to reference to the local project
+  3. Current error: Project installation with `pip install -e .` failing with metadata generation error:
+
   ```
-  #23 [final  6/11] COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh
-  #23 ERROR: failed to calculate checksum of ref ...: "/app/scripts/entrypoint.sh": not found
-  ------
-   > [final  6/11] COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh:
-  ------
-  Dockerfile:78
-  --------------------
-    76 |
-    77 |     # Copy only the necessary files from the builder stage.
-    78 | >>> COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh
-    79 |     RUN chmod +x /app/entrypoint.sh
-    80 |     COPY --from=builder /app/pyproject.toml /app/
-  --------------------
-  ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref ...: "/app/scripts/entrypoint.sh": not found
-  Error: buildx failed with: ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref ...: "/app/scripts/entrypoint.sh": not found
+  error: metadata-generation-failed
+  Encountered error while generating package metadata.
   ```
-  This happens despite the builder stage explicitly running `COPY scripts ./scripts`, which _should_ create `/app/scripts/entrypoint.sh`. This indicates a persistent, unexplained discrepancy between the local build environment and the GitHub Actions runner environment regarding Docker build context or filesystem state between stages.
-- **Goal:** Diagnose why the explicitly copied `/app/scripts/entrypoint.sh` file is not available/visible when the final stage attempts to copy it from the builder stage within the GitHub Actions environment.
+
+  This suggests an inconsistency between package definitions in pyproject.toml and how Docker builds the image.
+
+- **Goal:**
+
+  1. Fix the Docker build process to work reliably in GitHub Actions
+  2. Update ABOUT_THIS_TEMPLATE.md to reflect the current project structure (which now uses pyproject.toml instead of setup.py)
+  3. Update HISTORY.md with recent changes
+
 - **Next Debug Steps:**
-  1.  **Add CI Debugging:** Modify the CI workflow file (`.github/workflows/continuous-integration.yml`) in the `docker` and `trivy` jobs. _Before_ the `docker/build-push-action` step, add a manual `run` step to `ls -la $GITHUB_WORKSPACE` and `ls -la $GITHUB_WORKSPACE/scripts` to definitively confirm the `scripts` directory and its contents exist in the checked-out code _before_ Docker build context is even created.
-  2.  **Simplify Dockerfile (Temporarily):** If the files exist before the build, try drastically simplifying the `Dockerfile` for CI debugging. E.g., remove the `useradd`/`chown` step, remove the dependency installation, just focus on the `COPY scripts ./scripts` and a final `ls /app/scripts` in the builder to see if some other step interferes.
-  3.  **Check Buildx/Runner Caching:** Investigate potential interactions with Docker Buildx caching (`cache-from: type=gha`, `cache-to: type=gha`) on the runner. Try disabling cache (`cache-from: type=registry,ref=...` or no cache) for a test run.
-  4.  **Consider Runner Differences:** Research if there are known issues or differences with Docker contexts/volumes on the specific `ubuntu-latest` runner version being used.
-- **Resumption Prompt:** `Let's resume debugging the Docker CI build failure. Start by adding 'ls' commands to the GitHub Actions workflow file before the Docker build step to verify the presence of the scripts directory in the checkout.`
+
+  1.  **Docker Build Fix - Option 1:** Modify the Dockerfile to avoid using editable installation (-e flag) in the final stage, and instead copy the necessary files and install directly:
+
+      ```
+      # Copy project files and install
+      COPY --from=builder /app/fast_api_template /app/fast_api_template
+      COPY --from=builder /app/pyproject.toml /app/pyproject.toml
+      COPY --from=builder /app/README.md /app/README.md
+      RUN pip install .  # Install project without -e flag
+      ```
+
+  2.  **Docker Build Fix - Option 2:** Ensure all necessary files for package metadata generation are present in the final stage:
+
+      ```
+      # Copy ALL project files needed for installation
+      COPY --from=builder /app/pyproject.toml /app/
+      COPY --from=builder /app/README.md /app/
+      COPY --from=builder /app/LICENSE /app/
+      COPY --from=builder /app/fast_api_template /app/fast_api_template
+      # Then install with editable flag
+      RUN pip install -e .
+      ```
+
+  3.  **Update ABOUT_THIS_TEMPLATE.md:** The template information needs updating to reflect:
+
+      - Switch from setup.py to pyproject.toml
+      - Remove references to outdated package structure
+      - Update instructions related to dependencies and packaging
+      - Add information about the current Docker build process
+      - Emphasize simplicity and flexibility of the template
+      - Highlight included tools like vulture, codecov, and safety
+
+  4.  **Update HISTORY.md:** Add recent changes and improvements to the changelog.
+
+- **Resumption Prompt:** `Let's resume fixing the Docker build issues. I've analyzed the metadata generation failure and have two approaches to solve it. Also, we need to update ABOUT_THIS_TEMPLATE.md to reflect current project structure using pyproject.toml instead of setup.py.`
 
 ---
+
+## Guiding Principles for Template
+
+### High Priority
+
+- [ ] **Focus on Simplicity and Flexibility**
+
+  - [ ] Ensure the template is easy to set up with minimal steps
+  - [ ] Maintain flexibility for different use cases and deployment scenarios
+  - [ ] Document clear onboarding path for new users
+
+- [ ] **Incorporate Best Practices Tools**
+
+  - [ ] Ensure proper integration of vulture for dead code detection
+  - [ ] Configure codecov for comprehensive test coverage reporting
+  - [ ] Integrate safety for security vulnerability scanning
+  - [ ] Document how these tools enhance code quality and security
+
+- [ ] **Documentation Updates**
+  - [ ] Update ABOUT_THIS_TEMPLATE.md to reflect current structure and tools
+  - [ ] Revise HISTORY.md to document recent improvements
+  - [ ] Create detailed guides for each major feature
 
 ## 1. Repository Structure and Documentation
 

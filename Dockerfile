@@ -38,9 +38,6 @@ RUN uv venv .venv && \
 # Create a non-root user and adjust file ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
 
-# Verify scripts directory exists
-RUN ls -la /app/scripts/
-
 # === Stage 2: Final Runtime Image ===
 FROM python:3.12-slim AS final
 
@@ -59,22 +56,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml first
+# Copy essential project files for metadata
 COPY --from=builder /app/pyproject.toml /app/pyproject.toml
+COPY --from=builder /app/README.md /app/README.md
+COPY --from=builder /app/LICENSE /app/LICENSE
 COPY --from=builder /app/requirements.txt /app/requirements.txt
 
-# Install runtime dependencies from requirements.txt into system site-packages using pip
+# Install runtime dependencies from requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt && \
-    rm /app/requirements.txt # Clean up requirements file
+    rm /app/requirements.txt
 
-# Copy only the necessary files from the builder stage.
+# Copy application code and scripts
 COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
-COPY --from=builder /app/LICENSE /app/
 COPY --from=builder /app/fast_api_template /app/fast_api_template
 
-# Install the project itself
-RUN pip install -e .
+# Install the project directly without editable mode
+RUN pip install .
 
 # Create a non-root user for runtime and set proper ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
