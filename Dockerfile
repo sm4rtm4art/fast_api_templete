@@ -35,9 +35,12 @@ COPY pyproject.toml ./
 # Let's try compiling without --no-deps first. We exclude extras.
 # --no-strip-extras is needed if pyproject.toml specifies extras, but we want *only* base deps.
 # Let's explicitly install the base package '.' and then freeze.
-RUN uv venv /app/.venv && \
-    /app/.venv/bin/uv pip install --no-cache . && \
-    /app/.venv/bin/uv pip freeze > requirements.txt
+# Create venv, install base package into it, then freeze deps.
+# Use the globally installed /usr/local/bin/uv for all steps.
+# uv should detect the .venv in the current directory.
+RUN uv venv .venv && \
+    uv pip install --no-cache . && \
+    uv pip freeze > requirements.txt
 
 # Copy the rest of the project files
 COPY . .
@@ -66,8 +69,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements.txt from builder stage
 COPY --from=builder /app/requirements.txt /app/requirements.txt
 
-# Install runtime dependencies from requirements.txt into system site-packages
-RUN uv pip install --no-cache --system -r /app/requirements.txt && \
+# Install runtime dependencies from requirements.txt into system site-packages using pip
+RUN pip install --no-cache-dir -r /app/requirements.txt && \
     rm /app/requirements.txt # Clean up requirements file
 
 # Copy only the necessary files from the builder stage.
