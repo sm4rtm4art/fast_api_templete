@@ -48,6 +48,9 @@ COPY . .
 # Create a non-root user and adjust file ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
 
+# DEBUG: Verify entrypoint.sh exists in the builder stage
+RUN echo "---> Debugging: Listing /app/scripts contents:" && ls -la /app/scripts
+
 # === Stage 2: Final Runtime Image ===
 FROM python:3.12-slim AS final
 
