@@ -47,6 +47,7 @@ lint:
     - ruff check fast_api_template
     - ruff format --check fast_api_template tests
     - mypy --ignore-missing-imports fast_api_template
+    - pyright
   cache:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:

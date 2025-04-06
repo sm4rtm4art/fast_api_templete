@@ -1,5 +1,38 @@
 # FastAPI Template Improvement Plan
 
+---
+
+**CURRENT STATUS & NEXT STEPS (Dockerfile CI Debug)**
+
+- **Problem:** The GitHub Actions Docker build (commit `72669e8`) is still failing when the final stage tries to copy the script from the builder stage. The specific error is:
+  ```
+  #23 [final  6/11] COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh
+  #23 ERROR: failed to calculate checksum of ref ...: "/app/scripts/entrypoint.sh": not found
+  ------
+   > [final  6/11] COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh:
+  ------
+  Dockerfile:78
+  --------------------
+    76 |
+    77 |     # Copy only the necessary files from the builder stage.
+    78 | >>> COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh
+    79 |     RUN chmod +x /app/entrypoint.sh
+    80 |     COPY --from=builder /app/pyproject.toml /app/
+  --------------------
+  ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref ...: "/app/scripts/entrypoint.sh": not found
+  Error: buildx failed with: ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref ...: "/app/scripts/entrypoint.sh": not found
+  ```
+  This happens despite the builder stage explicitly running `COPY scripts ./scripts`, which _should_ create `/app/scripts/entrypoint.sh`. This indicates a persistent, unexplained discrepancy between the local build environment and the GitHub Actions runner environment regarding Docker build context or filesystem state between stages.
+- **Goal:** Diagnose why the explicitly copied `/app/scripts/entrypoint.sh` file is not available/visible when the final stage attempts to copy it from the builder stage within the GitHub Actions environment.
+- **Next Debug Steps:**
+  1.  **Add CI Debugging:** Modify the CI workflow file (`.github/workflows/continuous-integration.yml`) in the `docker` and `trivy` jobs. _Before_ the `docker/build-push-action` step, add a manual `run` step to `ls -la $GITHUB_WORKSPACE` and `ls -la $GITHUB_WORKSPACE/scripts` to definitively confirm the `scripts` directory and its contents exist in the checked-out code _before_ Docker build context is even created.
+  2.  **Simplify Dockerfile (Temporarily):** If the files exist before the build, try drastically simplifying the `Dockerfile` for CI debugging. E.g., remove the `useradd`/`chown` step, remove the dependency installation, just focus on the `COPY scripts ./scripts` and a final `ls /app/scripts` in the builder to see if some other step interferes.
+  3.  **Check Buildx/Runner Caching:** Investigate potential interactions with Docker Buildx caching (`cache-from: type=gha`, `cache-to: type=gha`) on the runner. Try disabling cache (`cache-from: type=registry,ref=...` or no cache) for a test run.
+  4.  **Consider Runner Differences:** Research if there are known issues or differences with Docker contexts/volumes on the specific `ubuntu-latest` runner version being used.
+- **Resumption Prompt:** `Let's resume debugging the Docker CI build failure. Start by adding 'ls' commands to the GitHub Actions workflow file before the Docker build step to verify the presence of the scripts directory in the checkout.`
+
+---
+
 ## 1. Repository Structure and Documentation
 
 ### High Priority
@@ -196,43 +229,9 @@
 
   - [x] Add `make ci-test` for running in CI environment
   - [x] Create `make validate` target for pre-commit checks
-  - [x] Implement `make release` for version bumping and tagging
-
-- [x] **Improve Documentation**
-  - [x] Add comments to all Makefile targets
-  - [x] Create a dedicated section in README for Makefile usage
-  - [x] Document environment variables used by Makefile
-  - [x] Add cloud platform setup and deployment instructions
+  - [x] Implement `make release`
 
 ## 6. Code Quality and Maintenance
-
-### High Priority
-
-- [x] **Fix Type Annotation Issues**
-
-  - [x] Resolve mypy errors in application code
-  - [x] Add proper return type annotations to all functions
-  - [x] Fix Optional type handling in function parameters
-  - [x] Ensure consistency in type hints across the codebase
-
-- [x] **Improve Error Handling**
-
-  - [x] Implement proper validation for configuration settings
-  - [x] Add robust error handling for environment variable loading
-  - [x] Create consistent error response format for API endpoints
-
-- [ ] **Optimize Performance**
-  - [ ] Identify and resolve performance bottlenecks
-  - [ ] Implement caching where appropriate
-  - [ ] Optimize database queries and connections
-
-### Medium Priority
-
-- [ ] **Code Refactoring**
-
-  - [ ] Extract common patterns into reusable utilities
-  - [ ] Improve separation of concerns in complex modules
-  - [ ] Remove code duplication
 
 - [ ] **Security Enhancements**
   - [ ] Conduct security audit of authentication system
@@ -243,53 +242,11 @@
     - [ ] Implement alternative JWT library that doesn't have known vulnerabilities
     - [ ] Monitor CVEs for fixes to python-jose (CVE-2024-33664, CVE-2024-33663)
     - [ ] Monitor CVEs for fixes to ecdsa (CVE-2024-23342, PVE-2024-64396)
+    - [ ] **Next Steps (Dependency Vulnerabilities):**
+      - **1. Analyze Usage:** Use search/grep to find exactly where `python-jose` and `ecdsa` are used in the codebase (`fast_api_template/auth` seems likely).
+      - **2. Research Vulnerabilities:** Look up the specific CVEs (CVE-2024-33664, CVE-2024-33663 for `python-jose`; CVE-2024-23342, PVE-2024-64396 for `ecdsa`) to understand the risks and if they apply to our usage patterns.
+      - **3. Evaluate Alternatives:** Research potential replacement libraries for JWT handling (e.g., `PyJWT`, `Authlib`) and ECDSA operations if necessary. Consider ease of migration, features, and maintenance status.
+      - **4. Plan Migration:** If replacement is needed, outline the steps to swap the libraries, update function calls, and adjust tests.
+      - **Resumption Prompt:** `Let's resume the security enhancement task. Start by searching the codebase to confirm where python-jose and ecdsa are being used.`
 
 ## Implementation Timeline
-
-### Completed
-
-- Repository structure refinement
-- Documentation improvements
-- Basic test expansion
-- Test coverage implementation
-- Health check endpoint
-- Makefile enhancements for local development
-- Type annotation fixes and improvements
-- Configuration system stabilization
-
-### Current Phase (Week 3)
-
-- Metrics and monitoring setup
-- Docker optimization
-- CI/CD pipeline improvements
-- Initial cloud platform templates
-
-### Week 4
-
-- Kubernetes configuration
-- Secrets management
-- Complete cloud deployment targets and platform-specific setup
-- Test multi-cloud deployment workflows
-
-### Week 5
-
-- Performance optimization
-- Security enhancements
-- Code refactoring
-- Error tracking integration
-- Distributed tracing setup
-
-## Success Criteria
-
-The template will be considered feature-complete when it meets the following criteria:
-
-- Comprehensive test suite with >70% coverage ✅
-- Fully documented API endpoints ✅
-- Proper error handling throughout the application ✅
-- Automated deployment pipeline ✅
-- Optimized container setup ✅
-- Support for at least 3 major cloud providers ✅
-- Single-command deployment to any supported cloud platform ✅
-- Zero mypy and linter errors in production code ✅
-- Comprehensive cloud service test suite with minimal dependencies ✅
-- Reusable abstractions for cloud services ✅

@@ -27,10 +27,8 @@ COPY --from=uv /uvx /usr/local/bin/uvx
 # (Optional) Verify UV installation.
 RUN echo "UV location: $(which uv)" && uv --version
 
-# Copy metadata files needed for the build process first
-COPY pyproject.toml README.md LICENSE ./
-# Copy the scripts directory separately
-COPY scripts ./scripts
+# Copy all project files first
+COPY . .
 
 # Generate requirements.txt with only runtime dependencies.
 # --no-deps might be too restrictive if the base package has deps not explicitly listed.
@@ -43,11 +41,11 @@ RUN uv venv .venv && \
     uv pip install --no-cache . && \
     uv pip freeze > requirements.txt
 
-# Copy application source code explicitly (replaces COPY . .)
-COPY fast_api_template ./fast_api_template
-
 # Create a non-root user and adjust file ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
+
+# Verify scripts directory exists
+RUN ls -la /app/scripts/
 
 # === Stage 2: Final Runtime Image ===
 FROM python:3.12-slim AS final
