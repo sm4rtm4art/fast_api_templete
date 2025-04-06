@@ -45,10 +45,6 @@ COPY . .
 # Create a non-root user and adjust file ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
 
-# Copy the entrypoint script from the repository.
-COPY scripts/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
 # === Stage 2: Final Runtime Image ===
 FROM python:3.12-slim AS final
 
@@ -75,12 +71,11 @@ RUN uv pip install --no-cache --system -r /app/requirements.txt && \
     rm /app/requirements.txt # Clean up requirements file
 
 # Copy only the necessary files from the builder stage.
-COPY --from=builder /app/entrypoint.sh /app/entrypoint.sh
+COPY --from=builder /app/scripts/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 COPY --from=builder /app/pyproject.toml /app/
 COPY --from=builder /app/LICENSE /app/
 COPY --from=builder /app/fast_api_template /app/fast_api_template
-COPY --from=builder /app/fast_api_template/config/default.toml /app/fast_api_template/config/
 
 # Create a non-root user for runtime and set proper ownership.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app

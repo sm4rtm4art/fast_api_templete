@@ -1,0 +1,58 @@
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Python Virtual Environment
+.venv/
+venv/
+env/
+
+# Python Cache/Compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+wheelhouse/
+
+# Test & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+# Depending on setup, you might want tests in the image for in-container testing.
+# Keep tests/ commented out if you need them copied.
+
+# IDE/Editor specific
+.vscode/
+.idea/
+*.swp
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Secrets / Config (Ensure these aren't committed anyway!)
+*.env
+secrets/
+config.yml
+# Add specific sensitive files here if necessary
+
+# Documentation build output
+site/
+docs/_build/
+
+# Caches
+.mypy_cache/
+.ruff_cache/
