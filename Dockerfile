@@ -1,81 +1,97 @@
 # === Stage: UV ===
 FROM ghcr.io/astral-sh/uv:0.6.6 AS uv
 
-# === Stage: Builder ===
-FROM python:3.12-slim as builder
+# === Stage 1: Builder ===
+FROM python:3.12-slim AS builder
 
-# Set environment variables
+# Environment variables for performance and to avoid .pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    PIP_DEFAULT_TIMEOUT=600 \
+    PIP_NO_CACHE_DIR=1
 
-# Install build dependencies
+WORKDIR /app
+
+# Install build dependencies and clean up.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy UV from the UV stage
+# Copy UV binaries from the UV stage into /usr/local/bin.
 COPY --from=uv /uv /usr/local/bin/uv
 COPY --from=uv /uvx /usr/local/bin/uvx
 
-# Set up workdir
+# (Optional) Verify UV installation.
+RUN echo "UV location: $(which uv)" && uv --version
+
+# Copy only pyproject.toml first for dependency resolution
+COPY pyproject.toml ./
+
+# Generate requirements.txt with only runtime dependencies.
+# --no-deps might be too restrictive if the base package has deps not explicitly listed.
+# Let's try compiling without --no-deps first. We exclude extras.
+# --no-strip-extras is needed if pyproject.toml specifies extras, but we want *only* base deps.
+# Let's explicitly install the base package '.' and then freeze.
+RUN uv venv /app/.venv && \
+    /app/.venv/bin/uv pip install --no-cache . && \
+    /app/.venv/bin/uv pip freeze > requirements.txt
+
+# Copy the rest of the project files
+COPY . .
+
+# Create a non-root user and adjust file ownership.
+RUN useradd --create-home appuser && chown -R appuser:appuser /app
+
+# Copy the entrypoint script from the repository.
+COPY scripts/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# === Stage 2: Final Runtime Image ===
+FROM python:3.12-slim AS final
+
 WORKDIR /app
 
-# Copy dependency files first for better caching
-COPY pyproject.toml LICENSE README.md ./
-
-# Install dependencies with UV
-RUN uv pip install --system -e .
-
-# Runtime stage
-FROM python:3.12-slim
-
-# Set environment variables
+# Set runtime environment variables.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
-    PORT=8000
+    PORT=8000 \
+    INITIALIZE_DB=1
 
-# Copy UV from the UV stage
-COPY --from=uv /uv /usr/local/bin/uv
-COPY --from=uv /uvx /usr/local/bin/uvx
-
-# Install runtime dependencies
+# Install minimal runtime dependencies and clean up.
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
     curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -r app && useradd -r -g app app
+# Copy requirements.txt from builder stage
+COPY --from=builder /app/requirements.txt /app/requirements.txt
 
-# Create app directory
-WORKDIR /app
+# Install runtime dependencies from requirements.txt into system site-packages
+RUN uv pip install --no-cache --system -r /app/requirements.txt && \
+    rm /app/requirements.txt # Clean up requirements file
 
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy only the necessary files from the builder stage.
+COPY --from=builder /app/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+COPY --from=builder /app/pyproject.toml /app/
+COPY --from=builder /app/LICENSE /app/
+COPY --from=builder /app/fast_api_template /app/fast_api_template
+COPY --from=builder /app/fast_api_template/config/default.toml /app/fast_api_template/config/
 
-# Copy application code
-COPY . /app/
+# Create a non-root user for runtime and set proper ownership.
+RUN useradd --create-home appuser && chown -R appuser:appuser /app
+USER appuser
 
-# Create an entrypoint script
-RUN echo '#!/bin/bash\nif [ "$1" = "api" ]; then\n  exec uvicorn fast_api_template.app:app --host 0.0.0.0 --port ${PORT} --workers=4\nelse\n  exec "$@"\nfi' > /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
-
-# Set proper permissions
-RUN chown -R app:app /app
-
-# Switch to non-root user
-USER app
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+# Add a health check.
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Expose the application port
-EXPOSE ${PORT}
+EXPOSE 8000
 
-# Use the flexible entrypoint
+# Set entrypoint and default command.
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["api"]
