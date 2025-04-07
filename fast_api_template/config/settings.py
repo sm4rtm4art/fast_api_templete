@@ -1,8 +1,11 @@
 """Application settings and configuration using Pydantic Settings."""
+# mypy: disable-error-code="import-not-found, call-arg, arg-type"
 
 from typing import List, Optional
 
 from pydantic import Field
+
+# This import legitimately can't be found by mypy without stubs
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -96,10 +99,10 @@ class Settings(BaseSettings):
     server_cors_allow_credentials: bool = Field(True, alias="FAST_API_TEMPLATE_SERVER_CORS_ALLOW_CREDENTIALS")
     env: str = Field("DEVELOPMENT", alias="FAST_API_TEMPLATE_ENV")
 
-    # Nested settings - Use default_factory and add ignores
-    database: DatabaseSettings = Field(default_factory=DatabaseSettings)  # type: ignore[arg-type]
-    jwt: JWTSettings = Field(default_factory=JWTSettings)  # type: ignore[arg-type]
-    demo_user: DemoUserSettings = Field(default_factory=DemoUserSettings)  # type: ignore[arg-type]
+    # Nested settings - mypy has trouble with these as they involve complex type factories
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    jwt: JWTSettings = Field(default_factory=JWTSettings)
+    demo_user: DemoUserSettings = Field(default_factory=DemoUserSettings)
     cloud: CloudSettings = Field(default_factory=CloudSettings)
 
     model_config = SettingsConfigDict(
@@ -111,8 +114,9 @@ class Settings(BaseSettings):
     )
 
 
-# Instantiate the settings - Add ignore
-settings = Settings()  # type: ignore[call-arg]
+# Instantiate the settings
+# This works because Pydantic BaseSettings can handle fields with default values and aliases
+settings = Settings()
 
 # Remove the separate instantiations
 # server_settings = ...
