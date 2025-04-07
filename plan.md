@@ -1,3 +1,23 @@
+**CURRENT ISSUE (JWT Validation Error - NEEDS FIX)**
+
+When running tests, the application fails with the following error:
+
+```
+pydantic_core._pydantic_core.ValidationError: 1 validation error for JWTSettings
+secret_key
+  Field required [type=missing, input_value={}, input_type=dict]
+```
+
+**SOLUTION NEEDED:**
+
+- Similar to how we fixed the DatabaseSettings by adding a default SQLite URL, we need to add a default JWT secret_key for testing environments
+- Modify the JWTSettings class in fast_api_template/config/settings.py to provide a non-empty default value for secret_key
+- Ensure the default is clearly marked as only for testing/development and not for production use
+
+**RESUMPTION PROMPT:** `Let's fix the JWTSettings validation error by adding a secure default secret_key for testing environments in the settings.py file.`
+
+---
+
 # FastAPI Template Improvement Plan
 
 ---
