@@ -7,7 +7,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
-from fast_api_template.config.settings import settings
+# Import using relative path
+from ..config import settings
 
 # Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

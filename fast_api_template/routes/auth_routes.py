@@ -14,7 +14,7 @@ from fast_api_template.auth_core import (
     create_access_token,
     get_current_user,
 )
-from fast_api_template.config.settings import settings
+from fast_api_template.config import settings
 from fast_api_template.db import get_session
 from fast_api_template.models.user import UserCreate, UserResponse
 
@@ -67,7 +67,7 @@ async def login(
         )
 
     access_token_expires = timedelta(minutes=settings.jwt.access_token_expire_minutes)
-    refresh_token_expires = timedelta(minutes=settings.jwt.refresh_token_expire_minutes)
+    refresh_token_expires = timedelta(days=settings.jwt.refresh_token_expire_days)
 
     access_token = create_access_token(
         data={"sub": user.username},
@@ -88,7 +88,7 @@ async def refresh_token(
 ) -> Any:
     """Refresh access token."""
     access_token_expires = timedelta(minutes=settings.jwt.access_token_expire_minutes)
-    refresh_token_expires = timedelta(minutes=settings.jwt.refresh_token_expire_minutes)
+    refresh_token_expires = timedelta(days=settings.jwt.refresh_token_expire_days)
 
     access_token = create_access_token(
         data={"sub": current_user.username},

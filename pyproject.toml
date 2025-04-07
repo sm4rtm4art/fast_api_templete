@@ -30,7 +30,7 @@ dependencies = [
     "python-multipart>=0.0.9",
     "typer>=0.9.0",
     "rich>=13.7.0",
-    "dynaconf>=3.2.4",
+    "psycopg2-binary>=2.9.9",    # PostgreSQL adapter
     "boto3-stubs[s3,sqs]>=1.37.18",
     "mypy-boto3-s3>=1.37.0",
     "mypy-boto3-sqs>=1.37.0",
@@ -246,7 +246,7 @@ ignore_errors = true
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = ["dynaconf.*", "google.cloud.*", "IPython.*", "typer", "typer.*", "typer.main", "typer.main.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*", "azure.*", "mypy_boto3_s3.*", "mypy_boto3_sqs.*", "mypy_boto3_lambda.*", "mypy_boto3_rds.*", "boto3.*", "redis.*", "tomli.*", "click.*", "click.testing.*", "moto.*", "requests_mock.*", "minio.*", "googleapiclient.*", "googleapiclient.http.*", "google.*", "google.api_core.*"]
+module = ["google.cloud.*", "IPython.*", "typer", "typer.*", "typer.main", "typer.main.*", "sqlmodel.*", "rich.*", "pytest.*", "sqlalchemy.*", "fastapi.*", "fastapi.middleware.*", "fastapi.security.*", "fastapi.testclient.*", "azure.*", "mypy_boto3_s3.*", "mypy_boto3_sqs.*", "mypy_boto3_lambda.*", "mypy_boto3_rds.*", "boto3.*", "redis.*", "tomli.*", "click.*", "click.testing.*", "moto.*", "requests_mock.*", "minio.*", "googleapiclient.*", "googleapiclient.http.*", "google.*", "google.api_core.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

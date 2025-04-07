@@ -43,12 +43,10 @@ fast_api_template/
 │   └── test_models/          # Model tests
 ├── notebooks/                # Jupyter notebooks (not in version control)
 ├── migrations/               # Database migrations (if applicable)
-├── Dockerfile                # Production Docker configuration
-├── Dockerfile.dev            # Development Docker configuration
-├── docker-compose.yaml       # Production Docker Compose
-├── docker-compose-dev.yaml   # Development Docker Compose
+├── Dockerfile                # Multi-stage Docker build for dev and production
+├── docker-compose.yaml       # Docker Compose with profiles for dev/prod
 ├── pyproject.toml            # Project metadata and dependencies
-├── .pre-commit-config.yaml   # Pre-commit hooks
+├── .env.example              # Example environment variables
 ├── .github/                  # GitHub workflows and templates
 └── docs/                     # Documentation
 ```
@@ -86,11 +84,12 @@ Keep business logic in service modules, not in API endpoint functions. This allo
 
 ### 5. Configuration Management
 
-Use environment variables with Dynaconf for configuration:
+Use environment variables with Pydantic Settings for configuration:
 
-- Different environments (dev, test, prod)
-- Secrets management
-- Type validation
+- Different environments (dev, test, prod) controlled via FAST_API_TEMPLATE_ENV variable
+- Secrets management through .env files
+- Type validation and nested configuration models
+- Default values and documentation built into the settings classes
 
 ## Scaling Strategies
 

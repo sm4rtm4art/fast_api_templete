@@ -44,10 +44,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title=settings.SERVER_NAME,
-    description=settings.SERVER_DESCRIPTION,
-    version=settings.SERVER_VERSION,
-    docs_url=settings.SERVER_DOCS_URL,
+    title=settings.server_name,
+    description=settings.server_description,
+    version=settings.server_version,
+    docs_url=settings.server_docs_url,
     lifespan=lifespan,
 )
 
@@ -65,15 +65,15 @@ def parse_cors_origin(value: Any) -> List[str]:
     return [origin] if origin else []
 
 
-if hasattr(settings, "cors") and hasattr(settings.cors, "origins"):
-    origins = parse_cors_origin(settings.cors.origins)
+if hasattr(settings, "server_cors_origins"):
+    origins = parse_cors_origin(settings.server_cors_origins)
 else:
     origins = ["*"]  # Default to allow all origins if not configured
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=settings.server_cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -96,7 +96,7 @@ async def root() -> dict[str, Any]:
     """Root endpoint."""
     return {
         "message": "Welcome to fast_api_template API",
-        "docs": settings.SERVER_DOCS_URL,
+        "docs": settings.server_docs_url,
     }
 
 

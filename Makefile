@@ -154,36 +154,40 @@ shell:            ## Open a shell in the project.
 	@./.venv/bin/ipython -c "from fast_api_template import *"
 
 .PHONY: docker-build
-docker-build:	  ## Build docker images
-	@docker compose -f docker-compose-dev.yaml -p fast_api_template build
+docker-build:	  ## Build docker images for development
+	@echo "Building development Docker image..."
+	@DOCKER_TARGET=development docker compose -f docker-compose.yaml --profile dev build
 
 .PHONY: docker-run
-docker-run:  	  ## Run docker development images
-	@docker compose -f docker-compose-dev.yaml -p fast_api_template up -d
+docker-run:  	  ## Run docker development environment with code hot-reloading
+	@echo "Starting development environment with hot-reloading..."
+	@DOCKER_TARGET=development docker compose -f docker-compose.yaml --profile dev up -d
 
 .PHONY: docker-stop
-docker-stop: 	  ## Bring down docker dev environment
-	@docker compose -f docker-compose-dev.yaml -p fast_api_template down
+docker-stop: 	  ## Stop docker development environment
+	@echo "Stopping development environment..."
+	@docker compose -f docker-compose.yaml --profile dev down
 
 .PHONY: docker-ps
-docker-ps: 	  ## List docker containers
-	@docker compose -f docker-compose-dev.yaml -p fast_api_template ps
+docker-ps: 	  ## List running docker containers
+	@echo "Listing development containers..."
+	@docker compose -f docker-compose.yaml --profile dev ps
 
 .PHONY: docker-logs
-docker-logs: 	  ## Show docker logs
-	@docker compose -f docker-compose-dev.yaml -p fast_api_template logs -f app
+docker-logs: 	  ## Show development docker logs
+	@echo "Showing development logs..."
+	@docker compose -f docker-compose.yaml --profile dev logs -f app
 
-.PHONY: docker-prod-build
-docker-prod-build:	## Build production docker images
-	@docker compose -f docker-compose.yaml -p fast_api_template_prod build
-
-.PHONY: docker-prod-run
-docker-prod-run:  	## Run production docker images
-	@docker compose -f docker-compose.yaml -p fast_api_template_prod up -d
+.PHONY: docker-prod
+docker-prod:      ## Build and run production Docker image (without hot-reloading)
+	@echo "Building and starting production environment..."
+	@docker compose -f docker-compose.yaml --profile prod build
+	@docker compose -f docker-compose.yaml --profile prod up -d
 
 .PHONY: docker-prod-stop
-docker-prod-stop: 	## Bring down production docker environment
-	@docker compose -f docker-compose.yaml -p fast_api_template_prod down
+docker-prod-stop: ## Stop production docker environment
+	@echo "Stopping production environment..."
+	@docker compose -f docker-compose.yaml --profile prod down
 
 .PHONY: mypy
 mypy: ## Run mypy

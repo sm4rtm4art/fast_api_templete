@@ -1,0 +1,155 @@
+name: Docker Image Size History Report
+
+on:
+  workflow_dispatch: # Manual trigger
+  schedule:
+    - cron: "0 0 * * 0" # Weekly on Sunday at midnight UTC
+
+jobs:
+  generate-size-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download size history artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-size-history
+          path: .docker-size-history
+
+      - name: Install Python dependencies
+        run: |
+          pip install matplotlib pandas numpy
+
+      - name: Generate size history chart
+        run: |
+          python - << EOF
+          import matplotlib.pyplot as plt
+          import pandas as pd
+          import numpy as np
+          import os
+          from datetime import datetime
+
+          # Check if history file exists
+          history_file = '.docker-size-history/size-history.csv'
+          if not os.path.exists(history_file):
+              print("No size history found.")
+              exit(0)
+
+          # Read the CSV
+          try:
+              df = pd.read_csv(history_file, header=None, names=['commit', 'size'])
+              df['size'] = pd.to_numeric(df['size'])
+
+              # Create size history chart
+              plt.figure(figsize=(12, 6))
+              plt.plot(range(len(df)), df['size'], marker='o', linestyle='-')
+              plt.axhline(y=1500, color='r', linestyle='--', label='Threshold (1500 MB)')
+
+              # Add labels and title
+              plt.xlabel('Build Number')
+              plt.ylabel('Image Size (MB)')
+              plt.title('Docker Image Size History')
+              plt.grid(True, linestyle='--', alpha=0.7)
+              plt.legend()
+
+              # Add trend line
+              if len(df) > 1:
+                  z = np.polyfit(range(len(df)), df['size'], 1)
+                  p = np.poly1d(z)
+                  plt.plot(range(len(df)), p(range(len(df))), "r--", alpha=0.5, label='Trend')
+
+              # Save the chart
+              plt.tight_layout()
+              plt.savefig('docker-size-history.png')
+              print(f"Chart generated with {len(df)} data points")
+
+              # Create markdown report
+              with open('docker-size-report.md', 'w') as f:
+                  f.write("# Docker Image Size History Report\n\n")
+                  f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n")
+                  f.write(f"Current image size: **{df['size'].iloc[-1]:.2f} MB**\n\n")
+                  f.write(f"Historical average: **{df['size'].mean():.2f} MB**\n\n")
+                  f.write(f"Threshold: **1500 MB**\n\n")
+
+                  if len(df) > 1:
+                      trend = "🔺 Increasing" if z[0] > 0 else "🔻 Decreasing"
+                      f.write(f"Trend: **{trend}**\n\n")
+
+                  f.write("![Docker Image Size History](docker-size-history.png)\n\n")
+
+                  # Add a table with the last 10 entries
+                  f.write("## Recent History\n\n")
+                  f.write("| Build # | Size (MB) | Status |\n")
+                  f.write("|---------|-----------|--------|\n")
+
+                  for i, row in df.tail(10).iterrows():
+                      status = "❌ Over limit" if row['size'] > 1500 else "✅ OK"
+                      f.write(f"| {len(df) - i} | {row['size']:.2f} | {status} |\n")
+
+          except Exception as e:
+              print(f"Error generating report: {e}")
+              exit(1)
+          EOF
+
+      - name: Upload size report
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-size-report
+          path: |
+            docker-size-history.png
+            docker-size-report.md
+          retention-days: 90
+
+      - name: Create size report as gist
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            try {
+              if (fs.existsSync('docker-size-report.md')) {
+                const content = fs.readFileSync('docker-size-report.md', 'utf8');
+
+                // Try to update existing gist first
+                try {
+                  const gists = await github.rest.gists.list();
+                  const sizeReportGist = gists.data.find(g => g.description === 'Docker Image Size Report');
+
+                  if (sizeReportGist) {
+                    await github.rest.gists.update({
+                      gist_id: sizeReportGist.id,
+                      description: 'Docker Image Size Report',
+                      files: {
+                        'docker-size-report.md': {
+                          content: content
+                        }
+                      }
+                    });
+                    console.log(`Updated gist: ${sizeReportGist.html_url}`);
+                  } else {
+                    // Create new gist if not found
+                    const result = await github.rest.gists.create({
+                      description: 'Docker Image Size Report',
+                      public: true,
+                      files: {
+                        'docker-size-report.md': {
+                          content: content
+                        }
+                      }
+                    });
+                    console.log(`Created gist: ${result.data.html_url}`);
+                  }
+                } catch (error) {
+                  console.log(`Error updating/creating gist: ${error}`);
+                }
+              } else {
+                console.log('No report file found');
+              }
+            } catch (error) {
+              console.log(`Error reading report file: ${error}`);
+            }

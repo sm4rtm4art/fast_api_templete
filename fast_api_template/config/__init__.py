@@ -1,6 +1,7 @@
 """Configuration package."""
 
-from fast_api_template.config.cloud import CloudConfig, CloudProvider
-from fast_api_template.config.settings import Settings
+# Import the unified settings object
+from .settings import settings
 
-__all__ = ["CloudConfig", "CloudProvider", "Settings"]
+# Expose the unified settings object
+__all__ = ["settings"]

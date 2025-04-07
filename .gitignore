@@ -137,3 +137,8 @@ dmypy.json
 # templates
 .github/templates/*
 .idea/
+
+# Environment variables
+.env
+# But keep the example file
+!.env.example

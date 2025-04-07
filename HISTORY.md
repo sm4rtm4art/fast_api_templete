@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (2025-03-24)
+## 1.0.0 (2025-04-06)
 
 ---
 
@@ -8,6 +8,13 @@
 - Improved CI/CD with GitHub Actions [Martin]
 - Implemented comprehensive linting and security checks [Martin]
 - Added Docker support with multi-stage builds [Martin]
+- Fixed Docker compatibility issues with module configs and database connections [Martin]
+- Replaced Dynaconf with Pydantic Settings for better configuration management [Martin]
+- Consolidated Docker setup into a single multi-stage Dockerfile and docker-compose profiles [Martin]
+- Replaced setup.py with modern pyproject.toml approach [Martin]
+- Enhanced project structure for better modularity and maintainability [Martin]
+- Added type hints throughout the codebase [Martin]
+- Updated documentation to reflect modern project structure [Martin]
 
 ## Original Template
 

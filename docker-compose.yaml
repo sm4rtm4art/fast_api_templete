@@ -5,13 +5,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-final}
+    profiles:
+      - prod
+      - dev
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - .env
     environment:
-      - fast_api_template_DB__uri=postgresql://postgres:postgres@db:5432/fast_api_template
-      - fast_api_template_DB__connect_args={}
+      - FAST_API_TEMPLATE_DATABASE__URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/fast_api_template
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
+      - PORT=8000
+    volumes:
+      - ./fast_api_template:/app/fast_api_template:ro
+      - ./pyproject.toml:/app/pyproject.toml:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -22,24 +31,23 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1G
-      replicas: 2
 
   db:
     build: postgres
     image: fast_api_template_postgres-13-alpine-multi-user
+    profiles:
+      - prod
+      - dev
     volumes:
       - postgres_data:/var/lib/postgresql/data
     expose:
       - "5432"
+    ports:
+      - "${DB_PORT:-5435}:5432"
     environment:
-      - POSTGRES_DBS=fast_api_template
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_DBS=${POSTGRES_DBS:-fast_api_template}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -47,19 +55,13 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
-    secrets:
-      - db_password
     deploy:
       resources:
         limits:
-          cpus: "1"
-          memory: 1G
+          memory: 512M
+          cpus: "0.5"
 
 volumes:
   postgres_data:
-    name: fast_api_template_db_data
+    name: ${PROJECT_NAME:-fast_api_template}_db_data
     driver: local
-
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt

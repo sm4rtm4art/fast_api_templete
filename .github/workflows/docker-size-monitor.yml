@@ -1,0 +1,117 @@
+name: Docker Image Size Monitor
+
+on:
+  workflow_run:
+    workflows: ["CI", "Build and Push", "Docker Build"] # Replace with your actual build workflow names
+    types:
+      - completed
+
+jobs:
+  monitor-image-size:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t fast-api-template:latest .
+
+      - name: Check Docker image size
+        id: check_size
+        run: |
+          # Get image size in MB (convert from bytes)
+          IMAGE_SIZE=$(docker image inspect fast-api-template:latest --format='{{.Size}}' | awk '{print $1/1024/1024}')
+          IMAGE_SIZE_ROUNDED=$(printf "%.2f" $IMAGE_SIZE)
+          echo "Image size: $IMAGE_SIZE_ROUNDED MB"
+
+          # Set output variable
+          echo "size=$IMAGE_SIZE_ROUNDED" >> $GITHUB_OUTPUT
+
+          # Check if exceeds threshold (1.5GB)
+          THRESHOLD=1500
+          if (( $(echo "$IMAGE_SIZE > $THRESHOLD" | bc -l) )); then
+            echo "WARNING: Image size exceeds $THRESHOLD MB threshold!"
+            echo "exceeds_threshold=true" >> $GITHUB_OUTPUT
+          else
+            echo "exceeds_threshold=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get system storage information
+        run: |
+          echo "### System storage information ###"
+          df -h
+          echo "### Docker system information ###"
+          docker system df -v
+
+      - name: Record image size
+        run: |
+          mkdir -p .docker-size-history
+          echo "${{ github.sha }},${{ steps.check_size.outputs.size }}" >> .docker-size-history/size-history.csv
+
+      - name: Create or update size history artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-size-history
+          path: .docker-size-history/size-history.csv
+          retention-days: 90
+
+      - name: Create Issue if image too large
+        if: steps.check_size.outputs.exceeds_threshold == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const imageSize = '${{ steps.check_size.outputs.size }}';
+
+            const issueBody = `
+            ## 🐳 Docker Image Size Alert ⚠️
+
+            The Docker image from workflow run [#${context.runId}](${context.payload.repository.html_url}/actions/runs/${context.runId}) is too large!
+
+            - **Size:** ${imageSize} MB
+            - **Threshold:** 1500 MB
+            - **Workflow:** ${context.workflow}
+            - **Commit:** [${context.sha.substring(0,7)}](${context.payload.repository.html_url}/commit/${context.sha})
+
+            ### Potential solutions:
+            - Use multi-stage builds
+            - Switch to smaller base images
+            - Remove unnecessary dependencies
+            - Clean package caches
+            - Avoid installing development dependencies
+
+            Please optimize the Dockerfile to reduce image size.
+            `;
+
+            // Check if there's already an open issue for Docker size
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['docker-size-alert']
+            });
+
+            if (issues.data.length === 0) {
+              // Create new issue if none exists
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🐳 Docker image size exceeds threshold',
+                body: issueBody,
+                labels: ['docker-size-alert']
+              });
+            } else {
+              // Update existing issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: issueBody + `\n\n**Updated:** ${new Date().toISOString()}`
+              });
+            }

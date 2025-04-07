@@ -10,7 +10,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from .config.settings import settings
+from .config import settings
 from .database import engine
 from .models.user import User
 from .utils.password import verify_password
@@ -22,7 +22,7 @@ DependencyCallable: TypeAlias = Callable[..., Any]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Access settings with proper type hints
+# Access JWT settings through the unified settings object
 SECRET_KEY: str = settings.jwt.secret_key
 ALGORITHM: str = settings.jwt.algorithm
 
