@@ -13,7 +13,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class DatabaseSettings(BaseSettings):
     """Database configuration."""
 
-    url: str = Field(...)
+    # Default to SQLite for testing if no URL provided
+    url: str = Field(default="sqlite:///./test.db?check_same_thread=False", description="Database connection URL")
     echo: bool = False
     model_config = SettingsConfigDict(env_prefix="FAST_API_TEMPLATE_DATABASE_", env_file=".env", extra="ignore")
 
